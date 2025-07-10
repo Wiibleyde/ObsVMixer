@@ -1,12 +1,11 @@
 import { useOBSController } from './hooks/useOBSController';
-import './styles/globals.css';
+import './globals.css';
 import ConnectionForm from './components/ConnectionForm';
 import StatusIndicator from './components/StatusIndicator';
 import SceneSwitchBar from './components/SceneSwitchBar';
 import MulticamContainer from './components/MulticamContainer';
 import DebugPanel from './components/DebugPanel';
 import Toaster from './components/Toaster';
-import { useEffect } from 'react';
 
 function App() {
     const {
@@ -28,10 +27,6 @@ function App() {
         handleApplyAll,
         handleSceneSwitch,
     } = useOBSController();
-
-    useEffect(() => {
-        console.log('fScenes:', fScenes);
-    }, [fScenes]);
 
     return (
         <>
