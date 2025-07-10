@@ -7,6 +7,8 @@ interface SceneSwitchBarProps {
 export default function SceneSwitchBar({ scenes, currentScene, onSceneSwitch }: SceneSwitchBarProps) {
     if (scenes.length === 0) return null;
 
+    console.log('Rendering SceneSwitchBar with scenes:', scenes, 'currentScene:', currentScene);
+
     return (
         <div className="scene-switch-bar" aria-label="Changer de scène">
             {scenes.map((scene) => {

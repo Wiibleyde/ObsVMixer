@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { OBSService } from '../services/obsService';
 import { type ToasterMessage } from '../components/Toaster';
 
@@ -242,6 +242,12 @@ export function useOBSController() {
             showToast('❌ Erreur lors du switch de scène : ' + error.message, 'error');
         }
     };
+
+    useEffect(() => {
+        if (isConnected) {
+            refreshSceneSwitchBar();
+        }
+    }, [isConnected, refreshSceneSwitchBar]);
 
     return {
         obsService,
