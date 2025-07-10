@@ -23,19 +23,19 @@ export const DebugActions: React.FC<DebugActionsProps> = ({
     onLoadAllScenes,
     onTestMulticamCameras,
     onRefreshAll,
-    onClearDebugInfo
+    onClearDebugInfo,
 }) => {
     const buttonStyle = (disabled: boolean) => ({
         ...styles.button,
         ...(disabled ? styles.buttonDisabled : {}),
-        ':hover': disabled ? {} : { backgroundColor: '#666' }
+        ':hover': disabled ? {} : { backgroundColor: '#666' },
     });
 
     const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
+        return date.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
         });
     };
 
@@ -66,7 +66,7 @@ export const DebugActions: React.FC<DebugActionsProps> = ({
                         disabled={isLoading}
                         style={{
                             ...buttonStyle(isLoading),
-                            backgroundColor: isLoading ? '#333' : '#2196F3'
+                            backgroundColor: isLoading ? '#333' : '#2196F3',
                         }}
                         title="Actualiser toutes les données"
                     >
@@ -80,7 +80,7 @@ export const DebugActions: React.FC<DebugActionsProps> = ({
                         disabled={isLoading}
                         style={{
                             ...buttonStyle(isLoading),
-                            backgroundColor: isLoading ? '#333' : '#f44336'
+                            backgroundColor: isLoading ? '#333' : '#f44336',
                         }}
                         title="Effacer les informations de debug"
                     >
@@ -91,27 +91,31 @@ export const DebugActions: React.FC<DebugActionsProps> = ({
 
             {/* Affichage des erreurs */}
             {errorMessage && (
-                <div style={{
-                    background: '#f44336',
-                    color: '#fff',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                    marginBottom: '10px',
-                    border: '1px solid #d32f2f'
-                }}>
+                <div
+                    style={{
+                        background: '#f44336',
+                        color: '#fff',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        marginBottom: '10px',
+                        border: '1px solid #d32f2f',
+                    }}
+                >
                     ⚠️ {errorMessage}
                 </div>
             )}
 
             {/* Affichage de la dernière mise à jour */}
             {lastUpdated && !errorMessage && (
-                <div style={{
-                    color: '#aaa',
-                    fontSize: '10px',
-                    marginBottom: '10px',
-                    fontStyle: 'italic'
-                }}>
+                <div
+                    style={{
+                        color: '#aaa',
+                        fontSize: '10px',
+                        marginBottom: '10px',
+                        fontStyle: 'italic',
+                    }}
+                >
                     Dernière mise à jour : {formatTime(lastUpdated)}
                 </div>
             )}

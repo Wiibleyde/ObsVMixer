@@ -27,34 +27,34 @@ export const useOBSDebug = (obsService: OBSService | null, isConnected: boolean)
         multicamInfo: {},
         isLoading: false,
         lastUpdated: null,
-        errorMessage: null
+        errorMessage: null,
     });
 
     // Nettoyage automatique quand on se déconnecte
     useEffect(() => {
         if (!isConnected) {
-            setDebugInfo(prev => ({
+            setDebugInfo((prev) => ({
                 ...prev,
                 allScenes: [],
                 multicamInfo: {},
-                errorMessage: null
+                errorMessage: null,
             }));
         }
     }, [isConnected]);
 
     const setLoading = useCallback((loading: boolean) => {
-        setDebugInfo(prev => ({ 
-            ...prev, 
+        setDebugInfo((prev) => ({
+            ...prev,
             isLoading: loading,
-            ...(loading ? { errorMessage: null } : {})
+            ...(loading ? { errorMessage: null } : {}),
         }));
     }, []);
 
     const setError = useCallback((error: string) => {
-        setDebugInfo(prev => ({ 
-            ...prev, 
+        setDebugInfo((prev) => ({
+            ...prev,
             isLoading: false,
-            errorMessage: error
+            errorMessage: error,
         }));
     }, []);
 
@@ -65,18 +65,18 @@ export const useOBSDebug = (obsService: OBSService | null, isConnected: boolean)
         }
 
         setLoading(true);
-        
+
         try {
             console.log('Loading all OBS scenes...');
             const scenes = await obsService.getAllScenes();
             console.log(`Found ${scenes.length} scenes:`, scenes);
-            
-            setDebugInfo(prev => ({
+
+            setDebugInfo((prev) => ({
                 ...prev,
                 allScenes: scenes,
                 isLoading: false,
                 lastUpdated: new Date(),
-                errorMessage: null
+                errorMessage: null,
             }));
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error loading scenes';
@@ -92,25 +92,25 @@ export const useOBSDebug = (obsService: OBSService | null, isConnected: boolean)
         }
 
         setLoading(true);
-        
+
         try {
             console.log('Testing multicam cameras...');
             const multicamScenes = await obsService.getMulticamScenes();
             console.log('Multicam scenes found:', multicamScenes);
 
             if (multicamScenes.length === 0) {
-                setDebugInfo(prev => ({
+                setDebugInfo((prev) => ({
                     ...prev,
                     multicamInfo: {},
                     isLoading: false,
                     lastUpdated: new Date(),
-                    errorMessage: 'No multicam scenes found (scenes with CAMSELECT)'
+                    errorMessage: 'No multicam scenes found (scenes with CAMSELECT)',
                 }));
                 return;
             }
 
             const info: { [key: string]: string | null } = {};
-            
+
             for (const scene of multicamScenes) {
                 console.log(`Testing scene: ${scene}`);
                 try {
@@ -123,12 +123,12 @@ export const useOBSDebug = (obsService: OBSService | null, isConnected: boolean)
                 }
             }
 
-            setDebugInfo(prev => ({
+            setDebugInfo((prev) => ({
                 ...prev,
                 multicamInfo: info,
                 isLoading: false,
                 lastUpdated: new Date(),
-                errorMessage: null
+                errorMessage: null,
             }));
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error testing multicam cameras';
@@ -143,7 +143,7 @@ export const useOBSDebug = (obsService: OBSService | null, isConnected: boolean)
             multicamInfo: {},
             isLoading: false,
             lastUpdated: null,
-            errorMessage: null
+            errorMessage: null,
         });
     }, []);
 
@@ -156,10 +156,7 @@ export const useOBSDebug = (obsService: OBSService | null, isConnected: boolean)
         setLoading(true);
         try {
             // Charger les scènes et tester les multicams en parallèle
-            await Promise.all([
-                loadAllScenes(),
-                testMulticamCameras()
-            ]);
+            await Promise.all([loadAllScenes(), testMulticamCameras()]);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error refreshing data';
             console.error('Error refreshing debug data:', error);
@@ -172,6 +169,6 @@ export const useOBSDebug = (obsService: OBSService | null, isConnected: boolean)
         loadAllScenes,
         testMulticamCameras,
         clearDebugInfo,
-        refreshAll
+        refreshAll,
     };
 };

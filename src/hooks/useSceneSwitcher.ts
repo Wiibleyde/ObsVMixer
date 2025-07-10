@@ -2,88 +2,91 @@ import { useState, useCallback } from 'react';
 import { OBSService } from '../services/obsService';
 
 interface UseSceneSwitcherProps {
-  obsService: OBSService;
-  isConnected: boolean;
+    obsService: OBSService;
+    isConnected: boolean;
 }
 
 export function useSceneSwitcher({ obsService, isConnected }: UseSceneSwitcherProps) {
-  const [fScenes, setFScenes] = useState<string[]>([]);
-  const [currentScene, setCurrentScene] = useState<string | null>(null);
+    const [fScenes, setFScenes] = useState<string[]>([]);
+    const [currentScene, setCurrentScene] = useState<string | null>(null);
 
-  const refreshSceneSwitchBar = useCallback(async () => {
-    if (!isConnected) return;
-    
-    try {
-      const [scenes, current] = await Promise.all([
-        obsService.getFScenes(),
-        obsService.getCurrentScene()
-      ]);
-      
-      setFScenes(scenes);
-      setCurrentScene(current);
-    } catch (err) {
-      console.error('Error refreshing scene switch bar:', err);
-    }
-  }, [isConnected, obsService]);
+    const refreshSceneSwitchBar = useCallback(async () => {
+        if (!isConnected) return;
 
-  const switchToScene = useCallback(async (sceneName: string) => {
-    try {
-      await obsService.switchToScene(sceneName);
-      setCurrentScene(sceneName);
-      return { success: true, message: `🎬 Scène "${sceneName}" sélectionnée` };
-    } catch (err) {
-      const error = err as Error;
-      return { success: false, message: `❌ Erreur lors du switch de scène : ${error.message}` };
-    }
-  }, [obsService]);
+        try {
+            const [scenes, current] = await Promise.all([obsService.getFScenes(), obsService.getCurrentScene()]);
 
-  const setupEventListeners = useCallback((
-    onConnectionLost: () => void,
-    onRefreshInterface: () => void,
-    onRefreshScenes: () => void,
-    onUpdateSelections: () => void
-  ) => {
-    obsService.onConnectionClosed(() => {
-      onConnectionLost();
-    });
+            setFScenes(scenes);
+            setCurrentScene(current);
+        } catch (err) {
+            console.error('Error refreshing scene switch bar:', err);
+        }
+    }, [isConnected, obsService]);
 
-    obsService.onCurrentSceneChanged((sceneName) => {
-      setCurrentScene(sceneName);
-    });
+    const switchToScene = useCallback(
+        async (sceneName: string) => {
+            try {
+                await obsService.switchToScene(sceneName);
+                setCurrentScene(sceneName);
+                return { success: true, message: `🎬 Scène "${sceneName}" sélectionnée` };
+            } catch (err) {
+                const error = err as Error;
+                return { success: false, message: `❌ Erreur lors du switch de scène : ${error.message}` };
+            }
+        },
+        [obsService]
+    );
 
-    obsService.onSceneCreated(() => {
-      obsService.clearScenesCache();
-      onRefreshInterface();
-      onRefreshScenes();
-    });
+    const setupEventListeners = useCallback(
+        (
+            onConnectionLost: () => void,
+            onRefreshInterface: () => void,
+            onRefreshScenes: () => void,
+            onUpdateSelections: () => void
+        ) => {
+            obsService.onConnectionClosed(() => {
+                onConnectionLost();
+            });
 
-    obsService.onSceneRemoved(() => {
-      obsService.clearScenesCache();
-      onRefreshInterface();
-      onRefreshScenes();
-    });
+            obsService.onCurrentSceneChanged((sceneName) => {
+                setCurrentScene(sceneName);
+            });
 
-    obsService.onSceneNameChanged(() => {
-      obsService.clearScenesCache();
-      onRefreshInterface();
-      onRefreshScenes();
-    });
+            obsService.onSceneCreated(() => {
+                obsService.clearScenesCache();
+                onRefreshInterface();
+                onRefreshScenes();
+            });
 
-    obsService.onSceneItemCreated(() => {
-      onUpdateSelections();
-    });
+            obsService.onSceneRemoved(() => {
+                obsService.clearScenesCache();
+                onRefreshInterface();
+                onRefreshScenes();
+            });
 
-    obsService.onSceneItemRemoved(() => {
-      onUpdateSelections();
-    });
-  }, [obsService]);
+            obsService.onSceneNameChanged(() => {
+                obsService.clearScenesCache();
+                onRefreshInterface();
+                onRefreshScenes();
+            });
 
-  return {
-    fScenes,
-    currentScene,
-    refreshSceneSwitchBar,
-    switchToScene,
-    setupEventListeners,
-    setCurrentScene
-  };
+            obsService.onSceneItemCreated(() => {
+                onUpdateSelections();
+            });
+
+            obsService.onSceneItemRemoved(() => {
+                onUpdateSelections();
+            });
+        },
+        [obsService]
+    );
+
+    return {
+        fScenes,
+        currentScene,
+        refreshSceneSwitchBar,
+        switchToScene,
+        setupEventListeners,
+        setCurrentScene,
+    };
 }

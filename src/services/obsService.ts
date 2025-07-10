@@ -65,7 +65,7 @@ export class OBSService {
     // Scene operations
     async getAllScenes(): Promise<string[]> {
         if (this.allScenesCache) return this.allScenesCache;
-        const scenes = await this.obs.call("GetSceneList");
+        const scenes = await this.obs.call('GetSceneList');
         this.allScenesCache = (scenes.scenes as Scene[]).map((s) => s.sceneName);
         return this.allScenesCache;
     }
@@ -76,44 +76,41 @@ export class OBSService {
 
     async getMulticamScenes(): Promise<string[]> {
         const allScenes = await this.getAllScenes();
-        console.log("All scenes:", allScenes);
-        const multicamScenes = allScenes
-            .filter(name => name.startsWith("CAMSELECT"))
-            .sort();
-        console.log("Filtered multicam scenes:", multicamScenes);
+        console.log('All scenes:', allScenes);
+        const multicamScenes = allScenes.filter((name) => name.startsWith('CAMSELECT')).sort();
+        console.log('Filtered multicam scenes:', multicamScenes);
         return multicamScenes;
     }
 
     async getCameraScenes(): Promise<string[]> {
         const allScenes = await this.getAllScenes();
         return allScenes
-            .filter(name =>
-                (name.startsWith("CAM") || name.startsWith("CAM ")) &&
-                !name.startsWith("CAMSELECT") &&
-                !name.toLowerCase().includes("multicam")
+            .filter(
+                (name) =>
+                    (name.startsWith('CAM') || name.startsWith('CAM ')) &&
+                    !name.startsWith('CAMSELECT') &&
+                    !name.toLowerCase().includes('multicam')
             )
             .reverse();
     }
 
     async getFScenes(): Promise<string[]> {
         const allScenes = await this.getAllScenes();
-        return allScenes
-            .filter(name => name.startsWith("F"))
-            .reverse();
+        return allScenes.filter((name) => name.startsWith('F')).reverse();
     }
 
     async getCurrentScene(): Promise<string> {
-        const res = await this.obs.call("GetCurrentProgramScene");
+        const res = await this.obs.call('GetCurrentProgramScene');
         return res.currentProgramSceneName;
     }
 
     async switchToScene(sceneName: string): Promise<void> {
-        await this.obs.call("SetCurrentProgramScene", { sceneName });
+        await this.obs.call('SetCurrentProgramScene', { sceneName });
     }
 
     // Scene item operations
     async getSceneItems(sceneName: string): Promise<SceneItem[]> {
-        const items = await this.obs.call("GetSceneItemList", { sceneName });
+        const items = await this.obs.call('GetSceneItemList', { sceneName });
         return items.sceneItems as SceneItem[];
     }
 
@@ -121,10 +118,13 @@ export class OBSService {
         try {
             console.log(`Getting scene items for ${multicamName}...`);
             const items = await this.getSceneItems(multicamName);
-            console.log(`Scene items for ${multicamName}:`, items.map(item => item.sourceName));
+            console.log(
+                `Scene items for ${multicamName}:`,
+                items.map((item) => item.sourceName)
+            );
 
-            const camera = items.find(item => {
-                const isCamera = item.sourceName.startsWith("CAM") || item.sourceName.startsWith("CAM ");
+            const camera = items.find((item) => {
+                const isCamera = item.sourceName.startsWith('CAM') || item.sourceName.startsWith('CAM ');
                 return isCamera;
             });
 
@@ -143,21 +143,23 @@ export class OBSService {
             const items = await this.getSceneItems(multicamName);
 
             // Remove all existing items from the MULTICAM scene
-            await Promise.all(items.map(item =>
-                this.obs.call("RemoveSceneItem", {
-                    sceneName: multicamName,
-                    sceneItemId: item.sceneItemId
-                })
-            ));
+            await Promise.all(
+                items.map((item) =>
+                    this.obs.call('RemoveSceneItem', {
+                        sceneName: multicamName,
+                        sceneItemId: item.sceneItemId,
+                    })
+                )
+            );
 
             // Add the new camera scene to the MULTICAM scene
-            const newItem = await this.obs.call("CreateSceneItem", {
+            const newItem = await this.obs.call('CreateSceneItem', {
                 sceneName: multicamName,
-                sourceName: newSceneName
+                sourceName: newSceneName,
             });
 
             // Set the transform to fill the scene
-            await this.obs.call("SetSceneItemTransform", {
+            await this.obs.call('SetSceneItemTransform', {
                 sceneName: multicamName,
                 sceneItemId: newItem.sceneItemId,
                 sceneItemTransform: {
@@ -165,10 +167,10 @@ export class OBSService {
                     positionY: 0,
                     scaleX: 1.0,
                     scaleY: 1.0,
-                    boundsType: "OBS_BOUNDS_SCALE_INNER",
+                    boundsType: 'OBS_BOUNDS_SCALE_INNER',
                     boundsWidth: 1920,
-                    boundsHeight: 1080
-                }
+                    boundsHeight: 1080,
+                },
             });
         } catch (err: unknown) {
             const error = err as Error;

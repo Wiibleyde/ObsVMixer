@@ -16,7 +16,10 @@ interface DebugPanelProps {
  */
 export default function DebugPanel({ obsService, isConnected }: DebugPanelProps) {
     const styles = useDebugPanelStyles();
-    const { debugInfo, loadAllScenes, testMulticamCameras, clearDebugInfo, refreshAll } = useOBSDebug(obsService, isConnected);
+    const { debugInfo, loadAllScenes, testMulticamCameras, clearDebugInfo, refreshAll } = useOBSDebug(
+        obsService,
+        isConnected
+    );
 
     // Ne pas afficher le panel si pas connecté
     if (!isConnected) {
@@ -25,9 +28,7 @@ export default function DebugPanel({ obsService, isConnected }: DebugPanelProps)
 
     return (
         <div style={styles.container}>
-            <h4 style={styles.header}>
-                🔍 Debug - OBS
-            </h4>
+            <h4 style={styles.header}>🔍 Debug - OBS</h4>
 
             <DebugActions
                 styles={styles}
@@ -40,15 +41,9 @@ export default function DebugPanel({ obsService, isConnected }: DebugPanelProps)
                 onClearDebugInfo={clearDebugInfo}
             />
 
-            <SceneListDisplay
-                styles={styles}
-                scenes={debugInfo.allScenes}
-            />
+            <SceneListDisplay styles={styles} scenes={debugInfo.allScenes} />
 
-            <MulticamInfoDisplay
-                styles={styles}
-                multicamInfo={debugInfo.multicamInfo}
-            />
+            <MulticamInfoDisplay styles={styles} multicamInfo={debugInfo.multicamInfo} />
         </div>
     );
 }

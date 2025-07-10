@@ -19,7 +19,7 @@ export default function MulticamContainer({
     cameraScenes,
     isLoading,
     onApplyCamera,
-    onApplyAll
+    onApplyAll,
 }: MulticamContainerProps) {
     if (isLoading) {
         return (
@@ -36,7 +36,8 @@ export default function MulticamContainer({
         return (
             <div className="multicam-container">
                 <div style={{ textAlign: 'center', color: '#aaa', padding: '18px 0' }}>
-                    <span style={{ fontSize: '16px' }}>😕</span><br />
+                    <span style={{ fontSize: '16px' }}>😕</span>
+                    <br />
                     <b style={{ fontSize: '12px' }}>Aucune scène MULTICAM trouvée</b>
                     <div style={{ fontSize: '10px', marginTop: '6px' }}>
                         Créez une scène commençant par <b>CAMSELECT</b> dans OBS.
@@ -56,9 +57,7 @@ export default function MulticamContainer({
                 tabIndex={0}
             >
                 🎉 Appliquer tout
-                <span className="tooltiptext">
-                    Appliquer la sélection à tous les MULTICAM
-                </span>
+                <span className="tooltiptext">Appliquer la sélection à tous les MULTICAM</span>
             </button>
 
             <div className="multicam-container">
