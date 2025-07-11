@@ -99,10 +99,7 @@ export function useOBSController() {
     const refreshSceneSwitchBar = useCallback(async () => {
         if (!isConnected) return;
         try {
-            const [scenes, current] = await Promise.all([
-                obsService.getFScenes(),
-                obsService.getCurrentScene(),
-            ]);
+            const [scenes, current] = await Promise.all([obsService.getFScenes(), obsService.getCurrentScene()]);
             setFScenes(scenes);
             setCurrentScene(current);
         } catch {
@@ -152,10 +149,7 @@ export function useOBSController() {
             showToast('✅ Connecté à OBS', 'success');
             setupEventListeners();
             await new Promise((resolve) => setTimeout(resolve, 0));
-            await Promise.all([
-                refreshInterface(true),
-                refreshSceneSwitchBar(),
-            ]);
+            await Promise.all([refreshInterface(true), refreshSceneSwitchBar()]);
         } catch (err) {
             const error = err as Error;
             updateStatus('error', 'Erreur de connexion');
