@@ -1,34 +1,37 @@
 import { useState, useEffect } from 'react';
 
-type Route = '/' | '/clock' | '/timer' | '/countdown';
-
-const BASE_URL = '/ObsVMixer';
+type Page = 'home' | 'clock' | 'timer' | 'countdown';
 
 export function useSimpleRouter() {
-    const [currentPath, setCurrentPath] = useState<Route>(() => {
-        const fullPath = window.location.pathname;
-        const path = fullPath.startsWith(BASE_URL) ? fullPath.substring(BASE_URL.length) : fullPath;
-        const normalizedPath = path || '/';
-        return ['/', '/clock', '/timer', '/countdown'].includes(normalizedPath) ? normalizedPath as Route : '/';
+    const [currentPage, setCurrentPage] = useState<Page>(() => {
+        const params = new URLSearchParams(window.location.search);
+        const page = params.get('page');
+        return ['home', 'clock', 'timer', 'countdown'].includes(page || '') ? (page as Page) : 'home';
     });
 
     useEffect(() => {
         const handlePopState = () => {
-            const fullPath = window.location.pathname;
-            const path = fullPath.startsWith(BASE_URL) ? fullPath.substring(BASE_URL.length) : fullPath;
-            const normalizedPath = path || '/';
-            setCurrentPath(['/', '/clock', '/timer', '/countdown'].includes(normalizedPath) ? normalizedPath as Route : '/');
+            const params = new URLSearchParams(window.location.search);
+            const page = params.get('page');
+            setCurrentPage(
+                ['home', 'clock', 'timer', 'countdown'].includes(page || '') ? (page as Page) : 'home'
+            );
         };
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
-    const navigate = (path: Route) => {
-        const fullPath = BASE_URL + path;
-        window.history.pushState({}, '', fullPath);
-        setCurrentPath(path);
+    const navigate = (page: Page) => {
+        const url = new URL(window.location.href);
+        if (page === 'home') {
+            url.searchParams.delete('page');
+        } else {
+            url.searchParams.set('page', page);
+        }
+        window.history.pushState({}, '', url.toString());
+        setCurrentPage(page);
     };
 
-    return { currentPath, navigate };
+    return { currentPage, navigate };
 }

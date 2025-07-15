@@ -22,26 +22,28 @@ function Clock() {
     }, []);
 
     return (
-        <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            fontSize: '4rem',
-            fontWeight: 'bold',
-        }}>
+        <div
+            style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                fontSize: '4rem',
+                fontWeight: 'bold',
+            }}
+        >
             {time.toLocaleTimeString(undefined, {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: showSeconds ? '2-digit' : undefined,
-                hour12: false
+                hour12: false,
             })}
             {showDate && (
                 <div style={{ fontSize: '1.2rem', marginTop: '1rem' }}>
                     {time.toLocaleDateString(undefined, {
                         year: 'numeric',
                         month: 'long',
-                        day: 'numeric'
+                        day: 'numeric',
                     })}
                 </div>
             )}

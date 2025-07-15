@@ -8,7 +8,7 @@ function Timer() {
         let interval: number;
         if (isRunning) {
             interval = setInterval(() => {
-                setTime(prevTime => prevTime + 1);
+                setTime((prevTime) => prevTime + 1);
             }, 1000);
         }
         return () => clearInterval(interval);
@@ -30,20 +30,24 @@ function Timer() {
     };
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            gap: '2rem'
-        }}>
-            <div style={{
-                fontSize: '4rem',
-                fontWeight: 'bold',
-                color: '#333',
-                marginBottom: '1rem'
-            }}>
+        <div
+            style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                gap: '2rem',
+            }}
+        >
+            <div
+                style={{
+                    fontSize: '4rem',
+                    fontWeight: 'bold',
+                    color: '#333',
+                    marginBottom: '1rem',
+                }}
+            >
                 {formatTime(time)}
             </div>
 
@@ -58,7 +62,7 @@ function Timer() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: isRunning ? 'not-allowed' : 'pointer'
+                        cursor: isRunning ? 'not-allowed' : 'pointer',
                     }}
                 >
                     Start
@@ -74,7 +78,7 @@ function Timer() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: !isRunning ? 'not-allowed' : 'pointer'
+                        cursor: !isRunning ? 'not-allowed' : 'pointer',
                     }}
                 >
                     Stop
@@ -89,7 +93,7 @@ function Timer() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                     }}
                 >
                     Reset

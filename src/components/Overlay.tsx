@@ -20,7 +20,7 @@ const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, upd
 
     const loadSources = useCallback(async () => {
         if (!isConnected) return;
-        
+
         setIsLoading(true);
         try {
             const overlaySources = await obsService.getOverlaySources();
@@ -35,18 +35,16 @@ const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, upd
 
     const toggleSourceVisibility = async (sourceName: string, currentVisible: boolean) => {
         if (!isConnected) return;
-        
+
         setIsUpdating(sourceName);
         try {
             await obsService.setSourceVisibility(sourceName, !currentVisible);
-            
+
             // Mettre à jour l'état local
-            setSources(prev => prev.map(source => 
-                source.name === sourceName 
-                    ? { ...source, visible: !currentVisible }
-                    : source
-            ));
-            
+            setSources((prev) =>
+                prev.map((source) => (source.name === sourceName ? { ...source, visible: !currentVisible } : source))
+            );
+
             const action = !currentVisible ? 'affichée' : 'masquée';
             onToast(`✅ Source "${sourceName}" ${action}`, 'success');
         } catch (error) {
@@ -101,7 +99,7 @@ const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, upd
                     <div key={source.name} className="overlay-source-item">
                         <span className="source-name">{source.name}</span>
                         <div className="source-controls">
-                            <span 
+                            <span
                                 className={`visibility-indicator ${source.visible ? 'visible' : 'hidden'}`}
                                 aria-live="polite"
                             >
@@ -125,12 +123,7 @@ const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, upd
                     </div>
                 ))}
             </div>
-            <button
-                className="refresh-btn"
-                onClick={loadSources}
-                disabled={isLoading}
-                title="Actualiser"
-            >
+            <button className="refresh-btn" onClick={loadSources} disabled={isLoading} title="Actualiser">
                 🔄 Actualiser
             </button>
         </div>

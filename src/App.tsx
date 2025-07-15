@@ -13,7 +13,7 @@ import Countdown from './components/Countdown';
 import Overlay from './components/Overlay';
 
 function App() {
-    const { currentPath, navigate } = useSimpleRouter();
+    const { currentPage } = useSimpleRouter();
     const {
         obsService,
         isConnected,
@@ -36,8 +36,8 @@ function App() {
         handleSceneSwitch,
     } = useOBSController();
 
-    // Rendu conditionnel basé sur la route
-    if (currentPath === '/clock') {
+    // Rendu conditionnel basé sur le paramètre page
+    if (currentPage === 'clock') {
         return (
             <>
                 <Clock />
@@ -45,7 +45,7 @@ function App() {
         );
     }
 
-    if (currentPath === '/timer') {
+    if (currentPage === 'timer') {
         return (
             <>
                 <Timer />
@@ -53,7 +53,7 @@ function App() {
         );
     }
 
-    if (currentPath === '/countdown') {
+    if (currentPage === 'countdown') {
         return (
             <>
                 <Countdown />
@@ -61,51 +61,12 @@ function App() {
         );
     }
 
-    // Route par défaut ('/')
+    // Page par défaut ('home')
     return (
         <>
             <div className="header-bar">
                 <h2>🎥 MULTICAM Controller</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <button 
-                        onClick={() => navigate('/clock')}
-                        style={{ 
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#4CAF50',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        🕐 Clock
-                    </button>
-                    <button 
-                        onClick={() => navigate('/timer')}
-                        style={{ 
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#FF9800',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        ⏱️ Timer
-                    </button>
-                    <button 
-                        onClick={() => window.open('/ObsVMixer/countdown?date=2025-12-31&time=23-59-59', '_blank')}
-                        style={{ 
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#9C27B0',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        ⏰ Countdown
-                    </button>
                     <StatusIndicator status={status} statusText={statusText} onDisconnect={handleDisconnect} />
                 </div>
             </div>

@@ -201,7 +201,7 @@ export class OBSService {
         try {
             const items = await this.getSceneItems('OVERLAY');
             const item = items.find((i) => i.sourceName === sourceName);
-            
+
             if (!item) {
                 throw new Error(`Source "${sourceName}" introuvable dans la scène OVERLAY`);
             }

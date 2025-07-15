@@ -27,7 +27,18 @@ function Countdown() {
                 throw new Error('Format de date/heure invalide');
             }
 
-            if (month < 1 || month > 12 || day < 1 || day > 31 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+            if (
+                month < 1 ||
+                month > 12 ||
+                day < 1 ||
+                day > 31 ||
+                hours < 0 ||
+                hours > 23 ||
+                minutes < 0 ||
+                minutes > 59 ||
+                seconds < 0 ||
+                seconds > 59
+            ) {
                 throw new Error('Valeurs de date/heure invalides');
             }
 
@@ -46,7 +57,6 @@ function Countdown() {
             const difference = target.getTime() - now;
             setTimeLeft(Math.max(0, difference));
             setIsExpired(difference <= 0);
-
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erreur de parsing de la date');
         }
@@ -86,41 +96,50 @@ function Countdown() {
 
     if (error) {
         return (
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100vh',
-                gap: '2rem',
-                padding: '2rem'
-            }}>
-                <div style={{
-                    fontSize: '2rem',
-                    fontWeight: 'bold',
-                    color: '#f44336',
-                    textAlign: 'center'
-                }}>
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '100vh',
+                    gap: '2rem',
+                    padding: '2rem',
+                }}
+            >
+                <div
+                    style={{
+                        fontSize: '2rem',
+                        fontWeight: 'bold',
+                        color: '#f44336',
+                        textAlign: 'center',
+                    }}
+                >
                     ❌ Erreur
                 </div>
-                <div style={{
-                    fontSize: '1.2rem',
-                    color: '#666',
-                    textAlign: 'center',
-                    maxWidth: '600px'
-                }}>
+                <div
+                    style={{
+                        fontSize: '1.2rem',
+                        color: '#666',
+                        textAlign: 'center',
+                        maxWidth: '600px',
+                    }}
+                >
                     {error}
                 </div>
-                <div style={{
-                    fontSize: '1rem',
-                    color: '#888',
-                    textAlign: 'center',
-                    fontFamily: 'monospace',
-                    backgroundColor: '#f5f5f5',
-                    padding: '1rem',
-                    borderRadius: '4px'
-                }}>
-                    Exemple d'URL valide:<br />
+                <div
+                    style={{
+                        fontSize: '1rem',
+                        color: '#888',
+                        textAlign: 'center',
+                        fontFamily: 'monospace',
+                        backgroundColor: '#f5f5f5',
+                        padding: '1rem',
+                        borderRadius: '4px',
+                    }}
+                >
+                    Exemple d'URL valide:
+                    <br />
                     /countdown?date=2025-12-31&time=23-59-59
                 </div>
             </div>
@@ -128,32 +147,38 @@ function Countdown() {
     }
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-        }}>
+        <div
+            style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+            }}
+        >
             {isExpired ? (
                 <>
-                    <div style={{
-                        fontSize: '4rem',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        textAlign: 'center'
-                    }}>
+                    <div
+                        style={{
+                            fontSize: '4rem',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            textAlign: 'center',
+                        }}
+                    >
                         🎉 On arrive !
                     </div>
                 </>
             ) : (
                 <>
-                    <div style={{
-                        fontSize: '4rem',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        textAlign: 'center'
-                    }}>
+                    <div
+                        style={{
+                            fontSize: '4rem',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            textAlign: 'center',
+                        }}
+                    >
                         {formatTime(timeLeft)}
                     </div>
                 </>
