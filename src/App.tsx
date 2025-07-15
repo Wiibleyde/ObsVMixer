@@ -5,7 +5,7 @@ import ConnectionForm from './components/ConnectionForm';
 import StatusIndicator from './components/StatusIndicator';
 import SceneSwitchBar from './components/SceneSwitchBar';
 import MulticamContainer from './components/MulticamContainer';
-import DebugPanel from './components/DebugPanel';
+// import DebugPanel from './components/DebugPanel';
 import Toaster from './components/Toaster';
 import Clock from './components/Clock';
 import Timer from './components/Timer';
@@ -94,7 +94,7 @@ function App() {
                         updateTrigger={overlayUpdateTrigger}
                     />
 
-                    <DebugPanel obsService={obsService} isConnected={isConnected} />
+                    {/* <DebugPanel obsService={obsService} isConnected={isConnected} /> */}
                 </div>
             )}
 
