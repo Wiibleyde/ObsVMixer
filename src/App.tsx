@@ -10,6 +10,7 @@ import Toaster from './components/Toaster';
 import Clock from './components/Clock';
 import Timer from './components/Timer';
 import Countdown from './components/Countdown';
+import Overlay from './components/Overlay';
 
 function App() {
     const { currentPath, navigate } = useSimpleRouter();
@@ -26,6 +27,8 @@ function App() {
         isLoadingInterface,
         toasterMessages,
         removeToast,
+        showToast,
+        overlayUpdateTrigger,
         handleConnect,
         handleDisconnect,
         handleApplyCamera,
@@ -121,6 +124,13 @@ function App() {
                         isLoading={isLoadingInterface}
                         onApplyCamera={handleApplyCamera}
                         onApplyAll={handleApplyAll}
+                    />
+
+                    <Overlay
+                        obsService={obsService}
+                        isConnected={isConnected}
+                        onToast={showToast}
+                        updateTrigger={overlayUpdateTrigger}
                     />
 
                     <DebugPanel obsService={obsService} isConnected={isConnected} />

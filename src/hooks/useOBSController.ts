@@ -21,6 +21,7 @@ export function useOBSController() {
     const [currentScene, setCurrentScene] = useState<string | null>(null);
     const [isLoadingInterface, setIsLoadingInterface] = useState(false);
     const [isApplyingCamera, setIsApplyingCamera] = useState(false);
+    const [overlayUpdateTrigger, setOverlayUpdateTrigger] = useState(0);
 
     const [toasterMessages, setToasterMessages] = useState<ToasterMessage[]>([]);
 
@@ -136,6 +137,10 @@ export function useOBSController() {
         });
         obsService.onSceneItemRemoved(() => {
             updateCurrentSelections();
+        });
+        obsService.onSceneItemEnableStateChanged(() => {
+            // Déclencher la mise à jour de l'overlay
+            setOverlayUpdateTrigger((prev) => prev + 1);
         });
     }, [obsService, updateStatus, showToast, refreshInterface, refreshSceneSwitchBar, updateCurrentSelections]);
 
@@ -258,6 +263,7 @@ export function useOBSController() {
         toasterMessages,
         showToast,
         removeToast,
+        overlayUpdateTrigger,
         handleConnect,
         handleDisconnect,
         handleApplyCamera,

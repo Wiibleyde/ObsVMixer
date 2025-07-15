@@ -3,6 +3,7 @@ import OBSWebSocket from 'obs-websocket-js';
 interface SceneItem {
     sceneItemId: number;
     sourceName: string;
+    sceneItemEnabled?: boolean;
     [key: string]: unknown;
 }
 
@@ -60,6 +61,10 @@ export class OBSService {
 
     onSceneItemRemoved(callback: () => void): void {
         this.obs.on('SceneItemRemoved', callback);
+    }
+
+    onSceneItemEnableStateChanged(callback: () => void): void {
+        this.obs.on('SceneItemEnableStateChanged', callback);
     }
 
     // Scene operations
@@ -175,6 +180,40 @@ export class OBSService {
         } catch (err: unknown) {
             const error = err as Error;
             throw new Error(`Erreur lors de la modification de ${multicamName}: ${error.message}`);
+        }
+    }
+
+    // Overlay operations
+    async getOverlaySources(): Promise<{ name: string; visible: boolean }[]> {
+        try {
+            const items = await this.getSceneItems('OVERLAY');
+            return items.map((item) => ({
+                name: item.sourceName,
+                visible: item.sceneItemEnabled !== false,
+            }));
+        } catch (err: unknown) {
+            const error = err as Error;
+            throw new Error(`Erreur lors de la récupération des sources OVERLAY: ${error.message}`);
+        }
+    }
+
+    async setSourceVisibility(sourceName: string, visible: boolean): Promise<void> {
+        try {
+            const items = await this.getSceneItems('OVERLAY');
+            const item = items.find((i) => i.sourceName === sourceName);
+            
+            if (!item) {
+                throw new Error(`Source "${sourceName}" introuvable dans la scène OVERLAY`);
+            }
+
+            await this.obs.call('SetSceneItemEnabled', {
+                sceneName: 'OVERLAY',
+                sceneItemId: item.sceneItemId,
+                sceneItemEnabled: visible,
+            });
+        } catch (err: unknown) {
+            const error = err as Error;
+            throw new Error(`Erreur lors de la modification de la visibilité de "${sourceName}": ${error.message}`);
         }
     }
 }
