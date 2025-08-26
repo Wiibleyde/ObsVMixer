@@ -198,18 +198,16 @@ export function useOBSController() {
     const handleApplyAll = async () => {
         setIsApplyingCamera(true);
         const multicamsToModify = multicams.filter((multicam) => {
-            const selectElement = document.getElementById(
-                `select_${multicam.name}`.replace(/\s+/g, '_')
-            ) as HTMLSelectElement;
-            return selectElement && selectElement.value;
+            const groupName = `camera_${multicam.name}`.replace(/\s+/g, '_');
+            const checkedRadio = document.querySelector(`input[name="${groupName}"]:checked`) as HTMLInputElement;
+            return checkedRadio && checkedRadio.value && checkedRadio.value !== multicam.currentCamera;
         });
         try {
             let appliedCount = 0;
             for (const multicam of multicamsToModify) {
-                const selectElement = document.getElementById(
-                    `select_${multicam.name}`.replace(/\s+/g, '_')
-                ) as HTMLSelectElement;
-                const selectedCamera = selectElement.value;
+                const groupName = `camera_${multicam.name}`.replace(/\s+/g, '_');
+                const checkedRadio = document.querySelector(`input[name="${groupName}"]:checked`) as HTMLInputElement;
+                const selectedCamera = checkedRadio.value;
                 setMulticamLoading(multicam.name, true);
                 await obsService.replaceSceneItem(multicam.name, selectedCamera);
                 setMulticamLoading(multicam.name, false);
@@ -218,7 +216,7 @@ export function useOBSController() {
             if (appliedCount > 0) {
                 showToast(`🎉 ${appliedCount} MULTICAM mis à jour !`, 'success');
             } else {
-                showToast('ℹ️ Aucune caméra sélectionnée', 'info');
+                showToast('ℹ️ Aucune nouvelle sélection détectée', 'info');
             }
         } catch (err) {
             const error = err as Error;

@@ -52,12 +52,12 @@ export default function MulticamContainer({
             <button
                 className="apply-all-button tooltip"
                 onClick={onApplyAll}
-                aria-label="Appliquer la sélection à tous les MULTICAM"
-                title="Appliquer la sélection à tous les MULTICAM"
+                aria-label="Synchroniser toutes les sélections"
+                title="Synchroniser toutes les sélections"
                 tabIndex={0}
             >
-                🎉 Appliquer tout
-                <span className="tooltiptext">Appliquer la sélection à tous les MULTICAM</span>
+                🔄 Synchroniser tout
+                <span className="tooltiptext">Applique toutes les nouvelles sélections de caméras</span>
             </button>
 
             <div className="multicam-container">

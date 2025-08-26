@@ -146,21 +146,19 @@ export function useMulticamManager({ obsService, isConnected }: UseMulticamManag
     const applyAllCameras = useCallback(async () => {
         setIsApplyingCamera(true);
 
-        // Get selected cameras from the DOM
+        // Get selected cameras from radio buttons that differ from current camera
         const multicamsToModify = multicams.filter((multicam) => {
-            const selectElement = document.getElementById(
-                `select_${multicam.name}`.replace(/\s+/g, '_')
-            ) as HTMLSelectElement;
-            return selectElement && selectElement.value;
+            const groupName = `camera_${multicam.name}`.replace(/\s+/g, '_');
+            const checkedRadio = document.querySelector(`input[name="${groupName}"]:checked`) as HTMLInputElement;
+            return checkedRadio && checkedRadio.value && checkedRadio.value !== multicam.currentCamera;
         });
 
         try {
             let appliedCount = 0;
             for (const multicam of multicamsToModify) {
-                const selectElement = document.getElementById(
-                    `select_${multicam.name}`.replace(/\s+/g, '_')
-                ) as HTMLSelectElement;
-                const selectedCamera = selectElement.value;
+                const groupName = `camera_${multicam.name}`.replace(/\s+/g, '_');
+                const checkedRadio = document.querySelector(`input[name="${groupName}"]:checked`) as HTMLInputElement;
+                const selectedCamera = checkedRadio.value;
 
                 setMulticamLoading(multicam.name, true);
                 await obsService.replaceSceneItem(multicam.name, selectedCamera);
@@ -171,7 +169,7 @@ export function useMulticamManager({ obsService, isConnected }: UseMulticamManag
             if (appliedCount > 0) {
                 return { success: true, message: `🎉 ${appliedCount} MULTICAM mis à jour !` };
             } else {
-                return { success: false, message: 'ℹ️ Aucune caméra sélectionnée' };
+                return { success: false, message: 'ℹ️ Aucune nouvelle sélection détectée' };
             }
         } catch (err) {
             const error = err as Error;
