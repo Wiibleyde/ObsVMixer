@@ -1,8 +1,8 @@
 import { useOBSController } from './hooks/useOBSController';
 import { useSimpleRouter } from './hooks/useSimpleRouter';
 import './globals.css';
+import Header from './components/Header';
 import ConnectionForm from './components/ConnectionForm';
-import StatusIndicator from './components/StatusIndicator';
 import SceneSwitchBar from './components/SceneSwitchBar';
 import MulticamContainer from './components/MulticamContainer';
 // import DebugPanel from './components/DebugPanel';
@@ -12,8 +12,8 @@ import Timer from './components/Timer';
 import Countdown from './components/Countdown';
 import Overlay from './components/Overlay';
 
-function App() {
-    const { currentPage } = useSimpleRouter();
+// Page principale, séparée pour que la connexion OBS ne soit montée que sur 'home'
+function Home() {
     const {
         obsService,
         isConnected,
@@ -31,49 +31,17 @@ function App() {
         overlayUpdateTrigger,
         handleConnect,
         handleDisconnect,
+        handleSelectCamera,
         handleApplyCamera,
         handleApplyAll,
         handleSceneSwitch,
     } = useOBSController();
 
-    // Rendu conditionnel basé sur le paramètre page
-    if (currentPage === 'clock') {
-        return (
-            <>
-                <Clock />
-            </>
-        );
-    }
-
-    if (currentPage === 'timer') {
-        return (
-            <>
-                <Timer />
-            </>
-        );
-    }
-
-    if (currentPage === 'countdown') {
-        return (
-            <>
-                <Countdown />
-            </>
-        );
-    }
-
-    // Page par défaut ('home')
     return (
         <>
-            <div className="header-bar">
-                <h2>🎥 MULTICAM Controller</h2>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <StatusIndicator status={status} statusText={statusText} onDisconnect={handleDisconnect} />
-                </div>
-            </div>
+            <Header status={status} statusText={statusText} onDisconnect={handleDisconnect} />
 
-            <ConnectionForm isVisible={!isConnected} isConnecting={isConnecting} onConnect={handleConnect} />
-
-            {isConnected && (
+            {isConnected ? (
                 <div>
                     <p style={{ marginTop: 0, marginBottom: 10 }}>Gérez vos caméras dans chaque scène MULTICAM</p>
 
@@ -83,24 +51,37 @@ function App() {
                         multicams={multicams}
                         cameraScenes={cameraScenes}
                         isLoading={isLoadingInterface}
+                        onSelectCamera={handleSelectCamera}
                         onApplyCamera={handleApplyCamera}
                         onApplyAll={handleApplyAll}
                     />
 
-                    <Overlay
-                        obsService={obsService}
-                        isConnected={isConnected}
-                        onToast={showToast}
-                        updateTrigger={overlayUpdateTrigger}
-                    />
+                    <Overlay obsService={obsService} onToast={showToast} updateTrigger={overlayUpdateTrigger} />
 
                     {/* <DebugPanel obsService={obsService} isConnected={isConnected} /> */}
                 </div>
+            ) : (
+                <ConnectionForm isConnecting={isConnecting} onConnect={handleConnect} />
             )}
 
             <Toaster messages={toasterMessages} onRemove={removeToast} />
         </>
     );
+}
+
+function App() {
+    const { currentPage } = useSimpleRouter();
+
+    switch (currentPage) {
+        case 'clock':
+            return <Clock />;
+        case 'timer':
+            return <Timer />;
+        case 'countdown':
+            return <Countdown />;
+        default:
+            return <Home />;
+    }
 }
 
 export default App;

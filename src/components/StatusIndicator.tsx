@@ -1,5 +1,7 @@
+import type { ConnectionStatus } from '../types';
+
 interface StatusIndicatorProps {
-    status: 'connected' | 'connecting' | 'error' | '';
+    status: ConnectionStatus;
     statusText: string;
     onDisconnect: () => void;
 }

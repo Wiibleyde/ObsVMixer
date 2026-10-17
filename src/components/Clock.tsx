@@ -1,30 +1,27 @@
 import { useState, useEffect } from 'react';
 
+const readOptions = () => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        showDate: params.get('date') === 'true',
+        showSeconds: params.get('seconds') === 'true',
+    };
+};
+
 function Clock() {
-    const [time, setTime] = useState(new Date());
-    const [showDate, setShowDate] = useState(false);
-    const [showSeconds, setShowSeconds] = useState(false);
+    const [time, setTime] = useState(() => new Date());
+    const [{ showDate, showSeconds }] = useState(readOptions);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setTime(new Date());
-        }, 1000);
-
+        const interval = setInterval(() => setTime(new Date()), 1000);
         return () => clearInterval(interval);
-    }, []);
-
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const dateParam = urlParams.get('date'); // format: true or false
-        const secondsParam = urlParams.get('seconds'); // format: true or false
-        setShowDate(dateParam === 'true');
-        setShowSeconds(secondsParam === 'true');
     }, []);
 
     return (
         <div
             style={{
                 display: 'flex',
+                flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
                 height: '100vh',

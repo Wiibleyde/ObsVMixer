@@ -1,53 +1,35 @@
-import { useState, useEffect } from 'react';
+import { memo } from 'react';
+import { CAMERA_PREFIX } from '../services/obsService';
 
 interface MulticamItemProps {
     multicamName: string;
     cameraScenes: string[];
     currentCamera: string | null;
+    selectedCamera: string;
     isLoading: boolean;
+    onSelectCamera: (multicamName: string, camera: string) => void;
     onApplyCamera: (multicamName: string, selectedCamera: string) => void;
 }
 
-export default function MulticamItem({
+const CAMERA_LABEL_REGEX = new RegExp(`^${CAMERA_PREFIX}\\s?`);
+const cameraLabel = (camera: string) => camera.replace(CAMERA_LABEL_REGEX, '');
+const toId = (value: string) => value.replace(/\s+/g, '_');
+
+function MulticamItem({
     multicamName,
     cameraScenes,
     currentCamera,
+    selectedCamera,
     isLoading,
+    onSelectCamera,
     onApplyCamera,
 }: MulticamItemProps) {
-    const [selectedCamera, setSelectedCamera] = useState('');
-
-    useEffect(() => {
-        console.log(`MulticamItem ${multicamName} - currentCamera updated:`, currentCamera);
-        setSelectedCamera(currentCamera || '');
-    }, [currentCamera, multicamName]);
-
-    const handleCameraSelect = (cameraName: string) => {
-        setSelectedCamera(cameraName);
-        // Ne plus appliquer automatiquement - l'utilisateur doit cliquer sur "Valider"
-    };
+    const hasChanges = selectedCamera !== '' && selectedCamera !== currentCamera;
+    const groupName = toId(`camera_${multicamName}`);
 
     const handleApply = () => {
-        if (!selectedCamera || selectedCamera === currentCamera) {
-            return;
-        }
-        onApplyCamera(multicamName, selectedCamera);
+        if (hasChanges) onApplyCamera(multicamName, selectedCamera);
     };
-
-    const hasChanges = selectedCamera && selectedCamera !== currentCamera;
-
-    const getCurrentCameraLabel = () => {
-        if (isLoading) {
-            return <span className="spinner"></span>;
-        }
-        if (currentCamera) {
-            const label = currentCamera.replace(/^CAM\s?/, '');
-            return <b>{label}</b>;
-        }
-        return <span style={{ color: '#aaa' }}>Aucune</span>;
-    };
-
-    const groupName = `camera_${multicamName}`.replace(/\s+/g, '_');
 
     return (
         <div className="multicam-item">
@@ -55,16 +37,22 @@ export default function MulticamItem({
             <div className="camera-status">
                 <span className="current-label">Actuelle:</span>
                 <span className="current-cam-label" aria-live="polite" aria-atomic="true">
-                    {getCurrentCameraLabel()}
+                    {isLoading ? (
+                        <span className="spinner"></span>
+                    ) : currentCamera ? (
+                        <b>{cameraLabel(currentCamera)}</b>
+                    ) : (
+                        <span style={{ color: '#aaa' }}>Aucune</span>
+                    )}
                 </span>
             </div>
             <div className="camera-selector">
                 {cameraScenes.map((cam) => {
-                    const label = cam.replace(/^CAM\s?/, '');
-                    const radioId = `${groupName}_${cam}`.replace(/\s+/g, '_');
+                    const label = cameraLabel(cam);
+                    const radioId = toId(`${groupName}_${cam}`);
                     const isActive = currentCamera === cam;
                     const isSelected = selectedCamera === cam;
-                    
+
                     return (
                         <div key={cam} className="camera-option">
                             <input
@@ -73,12 +61,12 @@ export default function MulticamItem({
                                 name={groupName}
                                 value={cam}
                                 checked={isSelected}
-                                onChange={() => handleCameraSelect(cam)}
+                                onChange={() => onSelectCamera(multicamName, cam)}
                                 className="camera-radio"
                                 aria-label={`Sélectionner ${label} pour ${multicamName}`}
                             />
-                            <label 
-                                htmlFor={radioId} 
+                            <label
+                                htmlFor={radioId}
                                 className={`camera-button ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`}
                                 title={isActive ? `${label} (actuellement active)` : `Sélectionner ${label}`}
                             >
@@ -101,3 +89,5 @@ export default function MulticamItem({
         </div>
     );
 }
+
+export default memo(MulticamItem);

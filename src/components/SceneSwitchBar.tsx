@@ -1,16 +1,16 @@
+import { memo } from 'react';
+
 interface SceneSwitchBarProps {
     scenes: string[];
     currentScene: string | null;
     onSceneSwitch: (sceneName: string) => void;
 }
 
-export default function SceneSwitchBar({ scenes, currentScene, onSceneSwitch }: SceneSwitchBarProps) {
+function SceneSwitchBar({ scenes, currentScene, onSceneSwitch }: SceneSwitchBarProps) {
     if (scenes.length === 0) return null;
 
-    console.log('Rendering SceneSwitchBar with scenes:', scenes, 'currentScene:', currentScene);
-
     return (
-        <div className="scene-switch-bar" aria-label="Changer de scène">
+        <div className="scene-switch-bar" role="group" aria-label="Changer de scène">
             {scenes.map((scene) => {
                 const isActive = scene === currentScene;
                 const displayName = scene.startsWith('F ') ? scene.slice(2) : scene;
@@ -22,7 +22,6 @@ export default function SceneSwitchBar({ scenes, currentScene, onSceneSwitch }: 
                         onClick={() => onSceneSwitch(scene)}
                         aria-label={`Aller à la scène ${scene}`}
                         aria-current={isActive ? 'true' : undefined}
-                        tabIndex={0}
                     >
                         {displayName}
                     </button>
@@ -31,3 +30,5 @@ export default function SceneSwitchBar({ scenes, currentScene, onSceneSwitch }: 
         </div>
     );
 }
+
+export default memo(SceneSwitchBar);

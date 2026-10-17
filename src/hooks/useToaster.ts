@@ -1,16 +1,14 @@
 import { useState, useCallback } from 'react';
+import type { ToasterMessage, ToastType } from '../types';
 
-export interface ToasterMessage {
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-}
+// Compteur plutôt que Date.now() : deux toasts dans la même milliseconde auraient la même clé
+let nextToastId = 0;
 
 export function useToaster() {
     const [messages, setMessages] = useState<ToasterMessage[]>([]);
 
-    const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
-        const id = Date.now().toString();
+    const showToast = useCallback((message: string, type: ToastType = 'success') => {
+        const id = String(nextToastId++);
         setMessages((prev) => [...prev, { id, message, type }]);
     }, []);
 

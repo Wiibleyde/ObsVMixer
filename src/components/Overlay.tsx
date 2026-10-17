@@ -1,76 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
-import { OBSService } from '../services/obsService';
-
-interface Source {
-    name: string;
-    visible: boolean;
-}
+import type { OBSService } from '../services/obsService';
+import type { OverlaySource, ToastType } from '../types';
+import { getErrorMessage } from '../utils/error';
 
 interface OverlayProps {
     obsService: OBSService;
-    isConnected: boolean;
-    onToast: (message: string, type: 'success' | 'error' | 'info') => void;
-    updateTrigger?: number;
+    onToast: (message: string, type: ToastType) => void;
+    updateTrigger: number;
 }
 
-const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, updateTrigger }) => {
-    const [sources, setSources] = useState<Source[]>([]);
+export default function Overlay({ obsService, onToast, updateTrigger }: OverlayProps) {
+    const [sources, setSources] = useState<OverlaySource[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isUpdating, setIsUpdating] = useState<string | null>(null);
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
 
     const loadSources = useCallback(async () => {
-        if (!isConnected) return;
-
         setIsLoading(true);
         try {
-            const overlaySources = await obsService.getOverlaySources();
-            setSources(overlaySources);
-        } catch (error) {
-            const err = error as Error;
-            onToast(`❌ Erreur lors du chargement des sources OVERLAY : ${err.message}`, 'error');
+            setSources(await obsService.getOverlaySources());
+        } catch (err) {
+            onToast(`❌ Erreur lors du chargement des sources OVERLAY : ${getErrorMessage(err)}`, 'error');
         } finally {
             setIsLoading(false);
         }
-    }, [isConnected, obsService, onToast]);
+    }, [obsService, onToast]);
 
-    const toggleSourceVisibility = async (sourceName: string, currentVisible: boolean) => {
-        if (!isConnected) return;
+    // Recharge au montage et à chaque changement de visibilité signalé par OBS
+    useEffect(() => {
+        loadSources();
+    }, [loadSources, updateTrigger]);
 
-        setIsUpdating(sourceName);
+    const toggleSourceVisibility = async (source: OverlaySource) => {
+        const visible = !source.visible;
+        setUpdatingId(source.id);
         try {
-            await obsService.setSourceVisibility(sourceName, !currentVisible);
-
-            // Mettre à jour l'état local
-            setSources((prev) =>
-                prev.map((source) => (source.name === sourceName ? { ...source, visible: !currentVisible } : source))
-            );
-
-            const action = !currentVisible ? 'affichée' : 'masquée';
-            onToast(`✅ Source "${sourceName}" ${action}`, 'success');
-        } catch (error) {
-            const err = error as Error;
-            onToast(`❌ ${err.message}`, 'error');
+            await obsService.setSourceVisibility(source, visible);
+            setSources((prev) => prev.map((s) => (s.id === source.id ? { ...s, visible } : s)));
+            onToast(`✅ Source "${source.name}" ${visible ? 'affichée' : 'masquée'}`, 'success');
+        } catch (err) {
+            onToast(`❌ ${getErrorMessage(err)}`, 'error');
         } finally {
-            setIsUpdating(null);
+            setUpdatingId(null);
         }
     };
 
-    useEffect(() => {
-        loadSources();
-    }, [loadSources]);
-
-    // Recharger les sources quand updateTrigger change
-    useEffect(() => {
-        if (updateTrigger !== undefined) {
-            loadSources();
-        }
-    }, [updateTrigger, loadSources]);
-
-    if (!isConnected) {
-        return null;
-    }
-
-    if (isLoading) {
+    // Spinner uniquement au premier chargement, pour éviter le clignotement à chaque rechargement
+    if (isLoading && sources.length === 0) {
         return (
             <div className="overlay-container">
                 <div style={{ textAlign: 'center', padding: '6px' }}>
@@ -96,7 +71,7 @@ const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, upd
             <h3>🎭 OVERLAY</h3>
             <div className="overlay-sources">
                 {sources.map((source) => (
-                    <div key={source.name} className="overlay-source-item">
+                    <div key={source.id} className="overlay-source-item">
                         <span className="source-name">{source.name}</span>
                         <div className="source-controls">
                             <span
@@ -107,11 +82,11 @@ const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, upd
                             </span>
                             <button
                                 className="toggle-btn"
-                                onClick={() => toggleSourceVisibility(source.name, source.visible)}
-                                disabled={isUpdating === source.name}
+                                onClick={() => toggleSourceVisibility(source)}
+                                disabled={updatingId === source.id}
                                 title={source.visible ? 'Masquer' : 'Afficher'}
                             >
-                                {isUpdating === source.name ? (
+                                {updatingId === source.id ? (
                                     <span className="spinner"></span>
                                 ) : source.visible ? (
                                     '❌'
@@ -128,6 +103,4 @@ const Overlay: React.FC<OverlayProps> = ({ obsService, isConnected, onToast, upd
             </button>
         </div>
     );
-};
-
-export default Overlay;
+}

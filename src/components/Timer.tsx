@@ -1,32 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
+import { formatDuration } from '../utils/time';
+
+const buttonStyle = (color: string, disabled = false): CSSProperties => ({
+    padding: '0.5rem 1rem',
+    fontSize: '1rem',
+    backgroundColor: disabled ? '#ccc' : color,
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+});
 
 function Timer() {
-    const [time, setTime] = useState(0); // en secondes
-    const [isRunning, setIsRunning] = useState(false);
+    // Basé sur des timestamps plutôt qu'un compteur +1/s : pas de dérive, même si l'onglet est throttlé
+    const [elapsedMs, setElapsedMs] = useState(0);
+    const [startedAt, setStartedAt] = useState<number | null>(null);
+    const [now, setNow] = useState(Date.now);
+    const isRunning = startedAt !== null;
 
     useEffect(() => {
-        let interval: number;
-        if (isRunning) {
-            interval = setInterval(() => {
-                setTime((prevTime) => prevTime + 1);
-            }, 1000);
-        }
+        if (!isRunning) return;
+        const interval = setInterval(() => setNow(Date.now()), 250);
         return () => clearInterval(interval);
     }, [isRunning]);
 
-    const formatTime = (seconds: number) => {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
+    const totalMs = elapsedMs + (startedAt !== null ? now - startedAt : 0);
 
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const handleStart = () => {
+        const t = Date.now();
+        setNow(t);
+        setStartedAt(t);
     };
-
-    const handleStart = () => setIsRunning(true);
-    const handleStop = () => setIsRunning(false);
+    const handleStop = () => {
+        if (startedAt === null) return;
+        setElapsedMs((prev) => prev + Date.now() - startedAt);
+        setStartedAt(null);
+    };
     const handleReset = () => {
-        setIsRunning(false);
-        setTime(0);
+        setElapsedMs(0);
+        setStartedAt(null);
     };
 
     return (
@@ -48,54 +60,17 @@ function Timer() {
                     marginBottom: '1rem',
                 }}
             >
-                {formatTime(time)}
+                {formatDuration(Math.floor(totalMs / 1000))}
             </div>
 
             <div style={{ display: 'flex', gap: '1rem' }}>
-                <button
-                    onClick={handleStart}
-                    disabled={isRunning}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        fontSize: '1rem',
-                        backgroundColor: isRunning ? '#ccc' : '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: isRunning ? 'not-allowed' : 'pointer',
-                    }}
-                >
+                <button onClick={handleStart} disabled={isRunning} style={buttonStyle('#4CAF50', isRunning)}>
                     Start
                 </button>
-
-                <button
-                    onClick={handleStop}
-                    disabled={!isRunning}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        fontSize: '1rem',
-                        backgroundColor: !isRunning ? '#ccc' : '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: !isRunning ? 'not-allowed' : 'pointer',
-                    }}
-                >
+                <button onClick={handleStop} disabled={!isRunning} style={buttonStyle('#f44336', !isRunning)}>
                     Stop
                 </button>
-
-                <button
-                    onClick={handleReset}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        fontSize: '1rem',
-                        backgroundColor: '#2196F3',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                    }}
-                >
+                <button onClick={handleReset} style={buttonStyle('#2196F3')}>
                     Reset
                 </button>
             </div>

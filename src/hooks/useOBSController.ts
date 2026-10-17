@@ -1,250 +1,256 @@
-import { useState, useCallback, useEffect } from 'react';
-import { OBSService } from '../services/obsService';
-import { type ToasterMessage } from '../components/Toaster';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { OBSService, MULTICAM_PREFIX, OVERLAY_SCENE } from '../services/obsService';
+import type { ConnectionStatus, MulticamData } from '../types';
+import { getErrorMessage } from '../utils/error';
+import { useToaster } from './useToaster';
 
-export interface MulticamData {
-    name: string;
-    currentCamera: string | null;
-    isLoading: boolean;
+// Délai avant resynchronisation après une modification : laisse passer la rafale
+// d'événements SceneItemCreated/Removed générés par nos propres appels
+const APPLY_SETTLE_DELAY = 500;
+
+export interface MulticamView extends MulticamData {
+    selectedCamera: string;
+}
+
+interface CameraChange {
+    multicam: string;
+    camera: string;
 }
 
 export function useOBSController() {
-    const [obsService] = useState(new OBSService());
+    const [obsService] = useState(() => new OBSService());
+    const { messages: toasterMessages, showToast, removeToast } = useToaster();
+
     const [isConnected, setIsConnected] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
-    const [status, setStatus] = useState<'connected' | 'connecting' | 'error' | ''>('');
+    const [status, setStatus] = useState<ConnectionStatus>('');
     const [statusText, setStatusText] = useState('Déconnecté');
 
     const [multicams, setMulticams] = useState<MulticamData[]>([]);
+    // Sélections en attente de validation, par scène MULTICAM
+    const [selections, setSelections] = useState<Record<string, string>>({});
     const [cameraScenes, setCameraScenes] = useState<string[]>([]);
     const [fScenes, setFScenes] = useState<string[]>([]);
     const [currentScene, setCurrentScene] = useState<string | null>(null);
     const [isLoadingInterface, setIsLoadingInterface] = useState(false);
-    const [isApplyingCamera, setIsApplyingCamera] = useState(false);
     const [overlayUpdateTrigger, setOverlayUpdateTrigger] = useState(0);
 
-    const [toasterMessages, setToasterMessages] = useState<ToasterMessage[]>([]);
+    // Refs lues par les handlers d'événements OBS, pour ne pas les réabonner à chaque rendu
+    const multicamNamesRef = useRef<string[]>([]);
+    const pendingAppliesRef = useRef(0);
+    const isManualDisconnectRef = useRef(false);
 
-    const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
-        const id = Date.now().toString();
-        setToasterMessages((prev) => [...prev, { id, message, type }]);
-    }, []);
-
-    const removeToast = useCallback((id: string) => {
-        setToasterMessages((prev) => prev.filter((msg) => msg.id !== id));
-    }, []);
-
-    const updateStatus = useCallback((newStatus: typeof status, text: string) => {
+    const updateStatus = useCallback((newStatus: ConnectionStatus, text: string) => {
         setStatus(newStatus);
         setStatusText(text);
     }, []);
 
-    const updateCurrentSelections = useCallback(
-        async (multicamNames?: string[], forceUpdate = false) => {
-            if (isApplyingCamera || (!isConnected && !forceUpdate)) return;
-            const names = multicamNames || multicams.map((m) => m.name);
-            if (names.length === 0) return;
-            try {
-                const updatedMulticams = await Promise.all(
-                    names.map(async (name) => {
-                        const currentCamera = await obsService.getCurrentCamera(name);
-                        return {
-                            name,
-                            currentCamera,
-                            isLoading: false,
-                        };
-                    })
-                );
-                setMulticams((prev) => {
-                    const newMulticams = [...prev];
-                    updatedMulticams.forEach((updated) => {
-                        const index = newMulticams.findIndex((m) => m.name === updated.name);
-                        if (index >= 0) {
-                            newMulticams[index] = updated;
-                        }
-                    });
-                    return newMulticams;
-                });
-            } catch {
-                // Optionally handle error
-            }
-        },
-        [isApplyingCamera, isConnected, multicams, obsService]
-    );
+    const updateCurrentSelections = useCallback(async () => {
+        const names = multicamNamesRef.current;
+        if (pendingAppliesRef.current > 0 || names.length === 0) return;
 
-    const refreshInterface = useCallback(
-        async (forceRefresh = false) => {
-            if (!isConnected && !forceRefresh) return;
-            setIsLoadingInterface(true);
-            try {
-                const multicamScenes = await obsService.getMulticamScenes();
-                const cameras = await obsService.getCameraScenes();
-                setCameraScenes(cameras);
-                const multicamData = multicamScenes.map((name) => ({
-                    name,
-                    currentCamera: null,
-                    isLoading: false,
-                }));
-                setMulticams(multicamData);
-                await updateCurrentSelections(multicamScenes, forceRefresh);
-            } catch (err) {
-                const error = err as Error;
-                showToast('❌ Erreur lors du chargement : ' + error.message, 'error');
-            } finally {
-                setIsLoadingInterface(false);
-            }
-        },
-        [isConnected, obsService, showToast, updateCurrentSelections]
-    );
+        const cameras = new Map(
+            await Promise.all(names.map(async (name) => [name, await obsService.getCurrentCamera(name)] as const))
+        );
+        setMulticams((prev) =>
+            prev.map((m) => (cameras.has(m.name) ? { ...m, currentCamera: cameras.get(m.name) ?? null } : m))
+        );
+        // Une sélection identique à la caméra active n'est plus en attente
+        setSelections((prev) =>
+            Object.fromEntries(Object.entries(prev).filter(([name, camera]) => cameras.get(name) !== camera))
+        );
+    }, [obsService]);
+
+    const refreshInterface = useCallback(async () => {
+        setIsLoadingInterface(true);
+        try {
+            const [multicamScenes, cameras] = await Promise.all([
+                obsService.getMulticamScenes(),
+                obsService.getCameraScenes(),
+            ]);
+            const currentCameras = await Promise.all(multicamScenes.map((name) => obsService.getCurrentCamera(name)));
+
+            multicamNamesRef.current = multicamScenes;
+            setCameraScenes(cameras);
+            setMulticams(
+                multicamScenes.map((name, i) => ({ name, currentCamera: currentCameras[i], isLoading: false }))
+            );
+            setSelections({});
+        } catch (err) {
+            showToast(`❌ Erreur lors du chargement : ${getErrorMessage(err)}`, 'error');
+        } finally {
+            setIsLoadingInterface(false);
+        }
+    }, [obsService, showToast]);
 
     const refreshSceneSwitchBar = useCallback(async () => {
-        if (!isConnected) return;
         try {
             const [scenes, current] = await Promise.all([obsService.getFScenes(), obsService.getCurrentScene()]);
             setFScenes(scenes);
             setCurrentScene(current);
-        } catch {
-            // Optionally handle error
-        }
-    }, [isConnected, obsService]);
-
-    const setupEventListeners = useCallback(() => {
-        obsService.onConnectionClosed(() => {
-            setIsConnected(false);
-            updateStatus('error', 'Connexion perdue');
-            showToast('⚠️ Connexion à OBS perdue', 'error');
-        });
-        obsService.onCurrentSceneChanged((sceneName) => {
-            setCurrentScene(sceneName);
-        });
-        obsService.onSceneCreated(() => {
-            obsService.clearScenesCache();
-            refreshInterface();
-            refreshSceneSwitchBar();
-        });
-        obsService.onSceneRemoved(() => {
-            obsService.clearScenesCache();
-            refreshInterface();
-            refreshSceneSwitchBar();
-        });
-        obsService.onSceneNameChanged(() => {
-            obsService.clearScenesCache();
-            refreshInterface();
-            refreshSceneSwitchBar();
-        });
-        obsService.onSceneItemCreated(() => {
-            updateCurrentSelections();
-        });
-        obsService.onSceneItemRemoved(() => {
-            updateCurrentSelections();
-        });
-        obsService.onSceneItemEnableStateChanged(() => {
-            // Déclencher la mise à jour de l'overlay
-            setOverlayUpdateTrigger((prev) => prev + 1);
-        });
-    }, [obsService, updateStatus, showToast, refreshInterface, refreshSceneSwitchBar, updateCurrentSelections]);
-
-    const handleConnect = async (host: string, port: string, password: string) => {
-        setIsConnecting(true);
-        updateStatus('connecting', 'Connexion...');
-        try {
-            await obsService.connect(host, port, password);
-            setIsConnected(true);
-            updateStatus('connected', 'Connecté');
-            showToast('✅ Connecté à OBS', 'success');
-            setupEventListeners();
-            await new Promise((resolve) => setTimeout(resolve, 0));
-            await Promise.all([refreshInterface(true), refreshSceneSwitchBar()]);
         } catch (err) {
-            const error = err as Error;
-            updateStatus('error', 'Erreur de connexion');
-            showToast('❌ Erreur de connexion OBS : ' + error.message, 'error');
-        } finally {
-            setIsConnecting(false);
+            console.error('Error refreshing scene switch bar:', err);
         }
-    };
+    }, [obsService]);
 
-    const handleDisconnect = async () => {
-        if (isConnected) {
-            await obsService.disconnect();
-            setIsConnected(false);
-            updateStatus('', 'Déconnecté');
-            showToast("🔌 Déconnecté d'OBS", 'info');
-        }
-    };
-
-    const setMulticamLoading = (multicamName: string, loading: boolean) => {
-        setMulticams((prev) => prev.map((m) => (m.name === multicamName ? { ...m, isLoading: loading } : m)));
-    };
-
-    const handleApplyCamera = async (multicamName: string, selectedCamera: string) => {
-        setIsApplyingCamera(true);
-        setMulticamLoading(multicamName, true);
-        try {
-            await obsService.replaceSceneItem(multicamName, selectedCamera);
-            showToast(`✅ ${multicamName} mis à jour avec ${selectedCamera}`, 'success');
-        } catch (err) {
-            const error = err as Error;
-            showToast('❌ Erreur : ' + error.message, 'error');
-        } finally {
-            setMulticamLoading(multicamName, false);
-            setTimeout(() => {
-                setIsApplyingCamera(false);
-                updateCurrentSelections();
-            }, 500);
-        }
-    };
-
-    const handleApplyAll = async () => {
-        setIsApplyingCamera(true);
-        const multicamsToModify = multicams.filter((multicam) => {
-            const groupName = `camera_${multicam.name}`.replace(/\s+/g, '_');
-            const checkedRadio = document.querySelector(`input[name="${groupName}"]:checked`) as HTMLInputElement;
-            return checkedRadio && checkedRadio.value && checkedRadio.value !== multicam.currentCamera;
-        });
-        try {
-            let appliedCount = 0;
-            for (const multicam of multicamsToModify) {
-                const groupName = `camera_${multicam.name}`.replace(/\s+/g, '_');
-                const checkedRadio = document.querySelector(`input[name="${groupName}"]:checked`) as HTMLInputElement;
-                const selectedCamera = checkedRadio.value;
-                setMulticamLoading(multicam.name, true);
-                await obsService.replaceSceneItem(multicam.name, selectedCamera);
-                setMulticamLoading(multicam.name, false);
-                appliedCount++;
-            }
-            if (appliedCount > 0) {
-                showToast(`🎉 ${appliedCount} MULTICAM mis à jour !`, 'success');
-            } else {
-                showToast('ℹ️ Aucune nouvelle sélection détectée', 'info');
-            }
-        } catch (err) {
-            const error = err as Error;
-            showToast('❌ Erreur : ' + error.message, 'error');
-        } finally {
-            setTimeout(() => {
-                setIsApplyingCamera(false);
-                updateCurrentSelections();
-            }, 500);
-        }
-    };
-
-    const handleSceneSwitch = async (sceneName: string) => {
-        try {
-            await obsService.switchToScene(sceneName);
-            showToast(`🎬 Scène "${sceneName}" sélectionnée`, 'info');
-            setCurrentScene(sceneName);
-        } catch (err) {
-            const error = err as Error;
-            showToast('❌ Erreur lors du switch de scène : ' + error.message, 'error');
-        }
-    };
-
+    // Chargement initial + abonnement aux événements OBS tant que la connexion est active
     useEffect(() => {
-        if (isConnected) {
+        if (!isConnected) return;
+
+        refreshInterface();
+        refreshSceneSwitchBar();
+
+        const onScenesChanged = () => {
+            obsService.clearScenesCache();
+            refreshInterface();
             refreshSceneSwitchBar();
+        };
+
+        const onSceneItemsChanged = ({ sceneName }: { sceneName: string }) => {
+            if (sceneName === OVERLAY_SCENE) {
+                setOverlayUpdateTrigger((n) => n + 1);
+            } else if (sceneName.startsWith(MULTICAM_PREFIX)) {
+                updateCurrentSelections();
+            }
+        };
+
+        const unsubscribers = [
+            obsService.on('ConnectionClosed', () => {
+                setIsConnected(false);
+                if (isManualDisconnectRef.current) return;
+                updateStatus('error', 'Connexion perdue');
+                showToast('⚠️ Connexion à OBS perdue', 'error');
+            }),
+            obsService.on('CurrentProgramSceneChanged', ({ sceneName }) => setCurrentScene(sceneName)),
+            obsService.on('SceneCreated', onScenesChanged),
+            obsService.on('SceneRemoved', onScenesChanged),
+            obsService.on('SceneNameChanged', onScenesChanged),
+            obsService.on('SceneItemCreated', onSceneItemsChanged),
+            obsService.on('SceneItemRemoved', onSceneItemsChanged),
+            obsService.on('SceneItemEnableStateChanged', onSceneItemsChanged),
+        ];
+
+        return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+    }, [
+        isConnected,
+        obsService,
+        refreshInterface,
+        refreshSceneSwitchBar,
+        updateCurrentSelections,
+        updateStatus,
+        showToast,
+    ]);
+
+    const handleConnect = useCallback(
+        async (host: string, port: string, password: string) => {
+            setIsConnecting(true);
+            updateStatus('connecting', 'Connexion...');
+            try {
+                await obsService.connect(host, port, password);
+                setIsConnected(true);
+                updateStatus('connected', 'Connecté');
+                showToast('✅ Connecté à OBS', 'success');
+            } catch (err) {
+                updateStatus('error', 'Erreur de connexion');
+                showToast(`❌ Erreur de connexion OBS : ${getErrorMessage(err)}`, 'error');
+            } finally {
+                setIsConnecting(false);
+            }
+        },
+        [obsService, updateStatus, showToast]
+    );
+
+    const handleDisconnect = useCallback(async () => {
+        // Évite que le listener ConnectionClosed ne signale une "connexion perdue"
+        isManualDisconnectRef.current = true;
+        try {
+            await obsService.disconnect();
+        } finally {
+            isManualDisconnectRef.current = false;
         }
-    }, [isConnected, refreshSceneSwitchBar]);
+        setIsConnected(false);
+        updateStatus('', 'Déconnecté');
+        showToast("🔌 Déconnecté d'OBS", 'info');
+    }, [obsService, updateStatus, showToast]);
+
+    const setMulticamsLoading = useCallback((names: string[], isLoading: boolean) => {
+        setMulticams((prev) => prev.map((m) => (names.includes(m.name) ? { ...m, isLoading } : m)));
+    }, []);
+
+    /** Applique les changements en parallèle ; renvoie le nombre de succès et la première erreur. */
+    const applyChanges = useCallback(
+        async (changes: CameraChange[]) => {
+            const names = changes.map((c) => c.multicam);
+            pendingAppliesRef.current++;
+            setMulticamsLoading(names, true);
+
+            const results = await Promise.allSettled(
+                changes.map((c) => obsService.replaceSceneItem(c.multicam, c.camera))
+            );
+
+            setMulticamsLoading(names, false);
+            setTimeout(() => {
+                pendingAppliesRef.current--;
+                updateCurrentSelections();
+            }, APPLY_SETTLE_DELAY);
+
+            const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+            return {
+                succeeded: results.length - failures.length,
+                error: failures.length > 0 ? getErrorMessage(failures[0].reason) : null,
+            };
+        },
+        [obsService, setMulticamsLoading, updateCurrentSelections]
+    );
+
+    const multicamViews = useMemo<MulticamView[]>(
+        () => multicams.map((m) => ({ ...m, selectedCamera: selections[m.name] ?? m.currentCamera ?? '' })),
+        [multicams, selections]
+    );
+
+    const handleSelectCamera = useCallback((multicam: string, camera: string) => {
+        setSelections((prev) => ({ ...prev, [multicam]: camera }));
+    }, []);
+
+    const handleApplyCamera = useCallback(
+        async (multicam: string, camera: string) => {
+            const { error } = await applyChanges([{ multicam, camera }]);
+            if (error) {
+                showToast(`❌ Erreur : ${error}`, 'error');
+            } else {
+                showToast(`✅ ${multicam} mis à jour avec ${camera}`, 'success');
+            }
+        },
+        [applyChanges, showToast]
+    );
+
+    const handleApplyAll = useCallback(async () => {
+        const changes = multicamViews
+            .filter((m) => m.selectedCamera && m.selectedCamera !== m.currentCamera)
+            .map((m) => ({ multicam: m.name, camera: m.selectedCamera }));
+
+        if (changes.length === 0) {
+            showToast('ℹ️ Aucune nouvelle sélection détectée', 'info');
+            return;
+        }
+
+        const { succeeded, error } = await applyChanges(changes);
+        if (succeeded > 0) showToast(`🎉 ${succeeded} MULTICAM mis à jour !`, 'success');
+        if (error) showToast(`❌ Erreur : ${error}`, 'error');
+    }, [multicamViews, applyChanges, showToast]);
+
+    const handleSceneSwitch = useCallback(
+        async (sceneName: string) => {
+            try {
+                await obsService.switchToScene(sceneName);
+                setCurrentScene(sceneName);
+                showToast(`🎬 Scène "${sceneName}" sélectionnée`, 'info');
+            } catch (err) {
+                showToast(`❌ Erreur lors du switch de scène : ${getErrorMessage(err)}`, 'error');
+            }
+        },
+        [obsService, showToast]
+    );
 
     return {
         obsService,
@@ -252,18 +258,18 @@ export function useOBSController() {
         isConnecting,
         status,
         statusText,
-        multicams,
+        multicams: multicamViews,
         cameraScenes,
         fScenes,
         currentScene,
         isLoadingInterface,
-        isApplyingCamera,
         toasterMessages,
         showToast,
         removeToast,
         overlayUpdateTrigger,
         handleConnect,
         handleDisconnect,
+        handleSelectCamera,
         handleApplyCamera,
         handleApplyAll,
         handleSceneSwitch,

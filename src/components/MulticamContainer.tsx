@@ -1,15 +1,11 @@
 import MulticamItem from './MulticamItem';
-
-interface MulticamData {
-    name: string;
-    currentCamera: string | null;
-    isLoading: boolean;
-}
+import type { MulticamView } from '../hooks/useOBSController';
 
 interface MulticamContainerProps {
-    multicams: MulticamData[];
+    multicams: MulticamView[];
     cameraScenes: string[];
     isLoading: boolean;
+    onSelectCamera: (multicamName: string, camera: string) => void;
     onApplyCamera: (multicamName: string, selectedCamera: string) => void;
     onApplyAll: () => void;
 }
@@ -18,6 +14,7 @@ export default function MulticamContainer({
     multicams,
     cameraScenes,
     isLoading,
+    onSelectCamera,
     onApplyCamera,
     onApplyAll,
 }: MulticamContainerProps) {
@@ -54,7 +51,6 @@ export default function MulticamContainer({
                 onClick={onApplyAll}
                 aria-label="Synchroniser toutes les sélections"
                 title="Synchroniser toutes les sélections"
-                tabIndex={0}
             >
                 🔄 Synchroniser tout
                 <span className="tooltiptext">Applique toutes les nouvelles sélections de caméras</span>
@@ -67,7 +63,9 @@ export default function MulticamContainer({
                         multicamName={multicam.name}
                         cameraScenes={cameraScenes}
                         currentCamera={multicam.currentCamera}
+                        selectedCamera={multicam.selectedCamera}
                         isLoading={multicam.isLoading}
+                        onSelectCamera={onSelectCamera}
                         onApplyCamera={onApplyCamera}
                     />
                 ))}

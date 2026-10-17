@@ -1,60 +1,49 @@
 import { useEffect, useState } from 'react';
+import type { ToasterMessage } from '../types';
 
-export interface ToasterMessage {
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-}
+const SHOW_DELAY = 100;
+const DISPLAY_DURATION = 3000;
+const HIDE_ANIMATION = 300;
 
 interface ToasterProps {
     messages: ToasterMessage[];
     onRemove: (id: string) => void;
 }
 
-export default function Toaster({ messages, onRemove }: ToasterProps) {
-    const [visibleMessages, setVisibleMessages] = useState<ToasterMessage[]>([]);
+interface ToastProps {
+    message: ToasterMessage;
+    onRemove: (id: string) => void;
+}
+
+function Toast({ message, onRemove }: ToastProps) {
+    const [isShown, setIsShown] = useState(false);
 
     useEffect(() => {
-        messages.forEach((message) => {
-            if (!visibleMessages.find((m) => m.id === message.id)) {
-                setVisibleMessages((prev) => [...prev, message]);
-
-                // Show toaster
-                setTimeout(() => {
-                    const toasterElement = document.getElementById(`toaster-${message.id}`);
-                    if (toasterElement) {
-                        toasterElement.classList.add('show');
-                    }
-                }, 100);
-
-                // Hide and remove toaster
-                setTimeout(() => {
-                    const toasterElement = document.getElementById(`toaster-${message.id}`);
-                    if (toasterElement) {
-                        toasterElement.classList.remove('show');
-                    }
-                    setTimeout(() => {
-                        onRemove(message.id);
-                        setVisibleMessages((prev) => prev.filter((m) => m.id !== message.id));
-                    }, 300);
-                }, 3000);
-            }
-        });
-    }, [messages, visibleMessages, onRemove]);
+        const timers = [
+            setTimeout(() => setIsShown(true), SHOW_DELAY),
+            setTimeout(() => setIsShown(false), DISPLAY_DURATION),
+            setTimeout(() => onRemove(message.id), DISPLAY_DURATION + HIDE_ANIMATION),
+        ];
+        return () => timers.forEach(clearTimeout);
+    }, [message.id, onRemove]);
 
     return (
-        <>
-            {visibleMessages.map((message) => (
-                <div
-                    key={message.id}
-                    id={`toaster-${message.id}`}
-                    className={`toaster ${message.type}`}
-                    role="status"
-                    aria-live={message.type === 'error' ? 'assertive' : 'polite'}
-                >
-                    {message.message}
-                </div>
+        <div
+            className={`toaster ${message.type}${isShown ? ' show' : ''}`}
+            role="status"
+            aria-live={message.type === 'error' ? 'assertive' : 'polite'}
+        >
+            {message.message}
+        </div>
+    );
+}
+
+export default function Toaster({ messages, onRemove }: ToasterProps) {
+    return (
+        <div className="toaster-stack">
+            {messages.map((message) => (
+                <Toast key={message.id} message={message} onRemove={onRemove} />
             ))}
-        </>
+        </div>
     );
 }

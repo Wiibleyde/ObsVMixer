@@ -1,49 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface ConnectionFormProps {
-    isVisible: boolean;
     isConnecting: boolean;
     onConnect: (host: string, port: string, password: string) => void;
 }
 
-export default function ConnectionForm({ isVisible, isConnecting, onConnect }: ConnectionFormProps) {
-    const [host, setHost] = useState('localhost');
-    const [port, setPort] = useState('4455');
-    const [password, setPassword] = useState('');
+const STORAGE_KEYS = {
+    host: 'obsHost',
+    port: 'obsPort',
+    password: 'obsPassword',
+} as const;
 
-    // Load connection settings from localStorage
-    useEffect(() => {
-        const savedHost = localStorage.getItem('obsHost') || 'localhost';
-        const savedPort = localStorage.getItem('obsPort') || '4455';
-        const savedPassword = localStorage.getItem('obsPassword') || '';
+const readStorage = (key: string, fallback: string) => localStorage.getItem(key) || fallback;
 
-        setHost(savedHost);
-        setPort(savedPort);
-        setPassword(savedPassword);
-    }, []);
+export default function ConnectionForm({ isConnecting, onConnect }: ConnectionFormProps) {
+    const [host, setHost] = useState(() => readStorage(STORAGE_KEYS.host, 'localhost'));
+    const [port, setPort] = useState(() => readStorage(STORAGE_KEYS.port, '4455'));
+    const [password, setPassword] = useState(() => readStorage(STORAGE_KEYS.password, ''));
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Save connection settings
-        localStorage.setItem('obsHost', host);
-        localStorage.setItem('obsPort', port);
-        localStorage.setItem('obsPassword', password);
+        localStorage.setItem(STORAGE_KEYS.host, host);
+        localStorage.setItem(STORAGE_KEYS.port, port);
+        localStorage.setItem(STORAGE_KEYS.password, password);
 
         onConnect(host, port, password);
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            handleSubmit(e);
-        }
-    };
-
-    if (!isVisible) return null;
-
     return (
         <div className="connection-form">
             <h3>Connexion OBS WebSocket</h3>
-            <form onSubmit={handleSubmit} onKeyPress={handleKeyPress}>
+            <form onSubmit={handleSubmit}>
                 <div className="form-group">
                     <label htmlFor="obsHost">Adresse :</label>
                     <input

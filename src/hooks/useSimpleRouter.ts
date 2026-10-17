@@ -1,37 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-type Page = 'home' | 'clock' | 'timer' | 'countdown';
+const PAGES = ['home', 'clock', 'timer', 'countdown'] as const;
+export type Page = (typeof PAGES)[number];
+
+function readPageFromUrl(): Page {
+    const page = new URLSearchParams(window.location.search).get('page');
+    return PAGES.includes(page as Page) ? (page as Page) : 'home';
+}
 
 export function useSimpleRouter() {
-    const [currentPage, setCurrentPage] = useState<Page>(() => {
-        const params = new URLSearchParams(window.location.search);
-        const page = params.get('page');
-        return ['home', 'clock', 'timer', 'countdown'].includes(page || '') ? (page as Page) : 'home';
-    });
+    const [currentPage, setCurrentPage] = useState<Page>(readPageFromUrl);
 
     useEffect(() => {
-        const handlePopState = () => {
-            const params = new URLSearchParams(window.location.search);
-            const page = params.get('page');
-            setCurrentPage(
-                ['home', 'clock', 'timer', 'countdown'].includes(page || '') ? (page as Page) : 'home'
-            );
-        };
-
+        const handlePopState = () => setCurrentPage(readPageFromUrl());
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
-    const navigate = (page: Page) => {
+    const navigate = useCallback((page: Page) => {
         const url = new URL(window.location.href);
         if (page === 'home') {
             url.searchParams.delete('page');
         } else {
             url.searchParams.set('page', page);
         }
-        window.history.pushState({}, '', url.toString());
+        window.history.pushState({}, '', url);
         setCurrentPage(page);
-    };
+    }, []);
 
     return { currentPage, navigate };
 }
