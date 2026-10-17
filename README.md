@@ -32,8 +32,7 @@ The following scene names are required:
 ## Development
 
 ### Prerequisites
-- Node.js (v22 or higher)
-- npm (v9 or higher)
+- [Bun](https://bun.sh) (v1.2 or higher)
 
 ### Installation
 1. Clone the repository:
@@ -46,13 +45,15 @@ The following scene names are required:
    ```
 3. Install dependencies:
    ```bash
-   npm install
+   bun install
    ```
 4. Start the development server:
    ```bash
-   npm run dev
+   bun dev
    ```
 5. Open your browser and go to `http://localhost:5173` to view the application.
+
+To build for production (output in `dist/`), run `bun run build`.
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a pull request or open an issue if you find a bug or have a feature request.
