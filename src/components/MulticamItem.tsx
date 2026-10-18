@@ -1,92 +1,57 @@
 import { memo } from 'react';
-import { CAMERA_PREFIX } from '../services/obsService';
+import ScenePreview from './ScenePreview';
+import type { MulticamData } from '../types';
+import { cameraLabel } from '../utils/scene';
 
 interface MulticamItemProps {
-    multicamName: string;
-    cameraScenes: string[];
-    currentCamera: string | null;
-    selectedCamera: string;
-    isLoading: boolean;
-    onSelectCamera: (multicamName: string, camera: string) => void;
-    onApplyCamera: (multicamName: string, selectedCamera: string) => void;
+    multicam: MulticamData;
+    armedCamera: string | null;
+    onSend: (multicamName: string) => void;
 }
 
-const CAMERA_LABEL_REGEX = new RegExp(`^${CAMERA_PREFIX}\\s?`);
-const cameraLabel = (camera: string) => camera.replace(CAMERA_LABEL_REGEX, '');
-const toId = (value: string) => value.replace(/\s+/g, '_');
+function MulticamItem({ multicam, armedCamera, onSend }: MulticamItemProps) {
+    const { name, currentCamera, isLoading } = multicam;
+    const isAlreadyCurrent = armedCamera !== null && armedCamera === currentCamera;
+    const canSend = armedCamera !== null && !isAlreadyCurrent && !isLoading;
 
-function MulticamItem({
-    multicamName,
-    cameraScenes,
-    currentCamera,
-    selectedCamera,
-    isLoading,
-    onSelectCamera,
-    onApplyCamera,
-}: MulticamItemProps) {
-    const hasChanges = selectedCamera !== '' && selectedCamera !== currentCamera;
-    const groupName = toId(`camera_${multicamName}`);
-
-    const handleApply = () => {
-        if (hasChanges) onApplyCamera(multicamName, selectedCamera);
-    };
+    const hint = armedCamera && (
+        <span className="slot-hint">
+            {isAlreadyCurrent ? 'Déjà sur cette sortie' : `Envoyer ${cameraLabel(armedCamera)} ici`}
+        </span>
+    );
 
     return (
-        <div className="multicam-item">
-            <h3>{multicamName}</h3>
-            <div className="camera-status">
-                <span className="current-label">Actuelle:</span>
-                <span className="current-cam-label" aria-live="polite" aria-atomic="true">
+        <button
+            type="button"
+            className={`slot-card ${armedCamera ? 'is-drop-target' : ''}`}
+            onClick={() => onSend(name)}
+            disabled={!canSend}
+            aria-label={canSend ? `Envoyer ${armedCamera} sur ${name}` : undefined}
+        >
+            {currentCamera ? (
+                <ScenePreview sceneName={currentCamera}>{hint}</ScenePreview>
+            ) : (
+                <span className="preview">
+                    <span className="preview-empty">Aucune caméra</span>
+                    {hint}
+                </span>
+            )}
+            <span className="slot-info">
+                <span className="slot-name">{name}</span>
+                <span className="slot-current" aria-live="polite" aria-atomic="true">
                     {isLoading ? (
                         <span className="spinner"></span>
-                    ) : currentCamera ? (
-                        <b>{cameraLabel(currentCamera)}</b>
                     ) : (
-                        <span style={{ color: '#aaa' }}>Aucune</span>
+                        currentCamera && (
+                            <>
+                                <span className="dot dot-live" aria-hidden="true"></span>
+                                {cameraLabel(currentCamera)}
+                            </>
+                        )
                     )}
                 </span>
-            </div>
-            <div className="camera-selector">
-                {cameraScenes.map((cam) => {
-                    const label = cameraLabel(cam);
-                    const radioId = toId(`${groupName}_${cam}`);
-                    const isActive = currentCamera === cam;
-                    const isSelected = selectedCamera === cam;
-
-                    return (
-                        <div key={cam} className="camera-option">
-                            <input
-                                type="radio"
-                                id={radioId}
-                                name={groupName}
-                                value={cam}
-                                checked={isSelected}
-                                onChange={() => onSelectCamera(multicamName, cam)}
-                                className="camera-radio"
-                                aria-label={`Sélectionner ${label} pour ${multicamName}`}
-                            />
-                            <label
-                                htmlFor={radioId}
-                                className={`camera-button ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`}
-                                title={isActive ? `${label} (actuellement active)` : `Sélectionner ${label}`}
-                            >
-                                {isActive && <span className="active-indicator">●</span>}
-                                {label}
-                            </label>
-                        </div>
-                    );
-                })}
-            </div>
-            <button
-                className="apply-button"
-                onClick={handleApply}
-                disabled={isLoading || !hasChanges}
-                title="Appliquer la sélection"
-                aria-label={`Appliquer la caméra sélectionnée à ${multicamName}`}
-            >
-                {isLoading ? <span className="spinner"></span> : '✓ Valider'}
-            </button>
-        </div>
+            </span>
+        </button>
     );
 }
 

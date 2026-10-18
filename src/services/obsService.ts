@@ -115,6 +115,19 @@ export class OBSService {
         return this.videoSizeCache;
     }
 
+    /** Capture JPEG réduite d'une scène, renvoyée en data URI. */
+    async getScenePreview(sceneName: string, width: number): Promise<string> {
+        const size = await this.getVideoSize();
+        const { imageData } = await this.obs.call('GetSourceScreenshot', {
+            sourceName: sceneName,
+            imageFormat: 'jpg',
+            imageWidth: width,
+            imageHeight: Math.round((width * size.height) / size.width),
+            imageCompressionQuality: 50,
+        });
+        return imageData;
+    }
+
     async replaceSceneItem(multicamName: string, newSceneName: string): Promise<void> {
         try {
             const [items, { width, height }] = await Promise.all([

@@ -1,5 +1,6 @@
 import { useOBSController } from './hooks/useOBSController';
 import { useSimpleRouter } from './hooks/useSimpleRouter';
+import { PreviewContext, usePreviews } from './hooks/usePreviews';
 import './globals.css';
 import Header from './components/Header';
 import ConnectionForm from './components/ConnectionForm';
@@ -11,6 +12,7 @@ import Clock from './components/Clock';
 import Timer from './components/Timer';
 import Countdown from './components/Countdown';
 import Overlay from './components/Overlay';
+import PreviewControls from './components/PreviewControls';
 
 // Page principale, séparée pour que la connexion OBS ne soit montée que sur 'home'
 function Home() {
@@ -31,41 +33,52 @@ function Home() {
         overlayUpdateTrigger,
         handleConnect,
         handleDisconnect,
-        handleSelectCamera,
         handleApplyCamera,
-        handleApplyAll,
         handleSceneSwitch,
     } = useOBSController();
+    const previews = usePreviews(obsService, isConnected);
 
     return (
-        <>
-            <Header status={status} statusText={statusText} onDisconnect={handleDisconnect} />
+        <PreviewContext.Provider value={previews.context}>
+            <Header status={status} statusText={statusText} onDisconnect={handleDisconnect}>
+                {isConnected && (
+                    <PreviewControls
+                        enabled={previews.enabled}
+                        intervalMs={previews.intervalMs}
+                        onToggle={previews.setEnabled}
+                        onIntervalChange={previews.setIntervalMs}
+                    />
+                )}
+            </Header>
 
             {isConnected ? (
-                <div>
-                    <p style={{ marginTop: 0, marginBottom: 10 }}>Gérez vos caméras dans chaque scène MULTICAM</p>
+                <main className="workspace">
+                    <div className="stage">
+                        <MulticamContainer
+                            multicams={multicams}
+                            cameraScenes={cameraScenes}
+                            isLoading={isLoadingInterface}
+                            onApplyCamera={handleApplyCamera}
+                        />
+                    </div>
 
-                    <SceneSwitchBar scenes={fScenes} currentScene={currentScene} onSceneSwitch={handleSceneSwitch} />
-
-                    <MulticamContainer
-                        multicams={multicams}
-                        cameraScenes={cameraScenes}
-                        isLoading={isLoadingInterface}
-                        onSelectCamera={handleSelectCamera}
-                        onApplyCamera={handleApplyCamera}
-                        onApplyAll={handleApplyAll}
-                    />
-
-                    <Overlay obsService={obsService} onToast={showToast} updateTrigger={overlayUpdateTrigger} />
+                    <aside className="sidebar">
+                        <SceneSwitchBar
+                            scenes={fScenes}
+                            currentScene={currentScene}
+                            onSceneSwitch={handleSceneSwitch}
+                        />
+                        <Overlay obsService={obsService} onToast={showToast} updateTrigger={overlayUpdateTrigger} />
+                    </aside>
 
                     {/* <DebugPanel obsService={obsService} isConnected={isConnected} /> */}
-                </div>
+                </main>
             ) : (
                 <ConnectionForm isConnecting={isConnecting} onConnect={handleConnect} />
             )}
 
             <Toaster messages={toasterMessages} onRemove={removeToast} />
-        </>
+        </PreviewContext.Provider>
     );
 }
 

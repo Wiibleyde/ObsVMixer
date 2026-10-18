@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { OBSService, MULTICAM_PREFIX, OVERLAY_SCENE } from '../services/obsService';
 import type { ConnectionStatus, MulticamData } from '../types';
 import { getErrorMessage } from '../utils/error';
@@ -7,10 +7,6 @@ import { useToaster } from './useToaster';
 // Délai avant resynchronisation après une modification : laisse passer la rafale
 // d'événements SceneItemCreated/Removed générés par nos propres appels
 const APPLY_SETTLE_DELAY = 500;
-
-export interface MulticamView extends MulticamData {
-    selectedCamera: string;
-}
 
 interface CameraChange {
     multicam: string;
@@ -27,8 +23,6 @@ export function useOBSController() {
     const [statusText, setStatusText] = useState('Déconnecté');
 
     const [multicams, setMulticams] = useState<MulticamData[]>([]);
-    // Sélections en attente de validation, par scène MULTICAM
-    const [selections, setSelections] = useState<Record<string, string>>({});
     const [cameraScenes, setCameraScenes] = useState<string[]>([]);
     const [fScenes, setFScenes] = useState<string[]>([]);
     const [currentScene, setCurrentScene] = useState<string | null>(null);
@@ -55,10 +49,6 @@ export function useOBSController() {
         setMulticams((prev) =>
             prev.map((m) => (cameras.has(m.name) ? { ...m, currentCamera: cameras.get(m.name) ?? null } : m))
         );
-        // Une sélection identique à la caméra active n'est plus en attente
-        setSelections((prev) =>
-            Object.fromEntries(Object.entries(prev).filter(([name, camera]) => cameras.get(name) !== camera))
-        );
     }, [obsService]);
 
     const refreshInterface = useCallback(async () => {
@@ -75,7 +65,6 @@ export function useOBSController() {
             setMulticams(
                 multicamScenes.map((name, i) => ({ name, currentCamera: currentCameras[i], isLoading: false }))
             );
-            setSelections({});
         } catch (err) {
             showToast(`❌ Erreur lors du chargement : ${getErrorMessage(err)}`, 'error');
         } finally {
@@ -203,15 +192,6 @@ export function useOBSController() {
         [obsService, setMulticamsLoading, updateCurrentSelections]
     );
 
-    const multicamViews = useMemo<MulticamView[]>(
-        () => multicams.map((m) => ({ ...m, selectedCamera: selections[m.name] ?? m.currentCamera ?? '' })),
-        [multicams, selections]
-    );
-
-    const handleSelectCamera = useCallback((multicam: string, camera: string) => {
-        setSelections((prev) => ({ ...prev, [multicam]: camera }));
-    }, []);
-
     const handleApplyCamera = useCallback(
         async (multicam: string, camera: string) => {
             const { error } = await applyChanges([{ multicam, camera }]);
@@ -223,21 +203,6 @@ export function useOBSController() {
         },
         [applyChanges, showToast]
     );
-
-    const handleApplyAll = useCallback(async () => {
-        const changes = multicamViews
-            .filter((m) => m.selectedCamera && m.selectedCamera !== m.currentCamera)
-            .map((m) => ({ multicam: m.name, camera: m.selectedCamera }));
-
-        if (changes.length === 0) {
-            showToast('ℹ️ Aucune nouvelle sélection détectée', 'info');
-            return;
-        }
-
-        const { succeeded, error } = await applyChanges(changes);
-        if (succeeded > 0) showToast(`🎉 ${succeeded} MULTICAM mis à jour !`, 'success');
-        if (error) showToast(`❌ Erreur : ${error}`, 'error');
-    }, [multicamViews, applyChanges, showToast]);
 
     const handleSceneSwitch = useCallback(
         async (sceneName: string) => {
@@ -258,7 +223,7 @@ export function useOBSController() {
         isConnecting,
         status,
         statusText,
-        multicams: multicamViews,
+        multicams,
         cameraScenes,
         fScenes,
         currentScene,
@@ -269,9 +234,7 @@ export function useOBSController() {
         overlayUpdateTrigger,
         handleConnect,
         handleDisconnect,
-        handleSelectCamera,
         handleApplyCamera,
-        handleApplyAll,
         handleSceneSwitch,
     };
 }

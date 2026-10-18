@@ -45,62 +45,44 @@ export default function Overlay({ obsService, onToast, updateTrigger }: OverlayP
     };
 
     // Spinner uniquement au premier chargement, pour éviter le clignotement à chaque rechargement
-    if (isLoading && sources.length === 0) {
-        return (
-            <div className="overlay-container">
-                <div style={{ textAlign: 'center', padding: '6px' }}>
-                    <span className="spinner"></span>
-                    <span style={{ marginLeft: '6px', fontSize: '10px' }}>Chargement...</span>
-                </div>
+    const content =
+        isLoading && sources.length === 0 ? (
+            <div className="empty-state">
+                <span className="spinner"></span>
+                <span>Chargement...</span>
             </div>
+        ) : sources.length === 0 ? (
+            <div className="empty-state">Aucune source OVERLAY</div>
+        ) : (
+            <ul className="overlay-sources">
+                {sources.map((source) => (
+                    <li key={source.id} className="overlay-source-item">
+                        <span className="source-name" title={source.name}>
+                            {source.name}
+                        </span>
+                        <button
+                            type="button"
+                            className="switch"
+                            onClick={() => toggleSourceVisibility(source)}
+                            disabled={updatingId === source.id}
+                            aria-pressed={source.visible}
+                            aria-label={`Afficher ${source.name}`}
+                        >
+                            <span className="switch-knob"></span>
+                        </button>
+                    </li>
+                ))}
+            </ul>
         );
-    }
-
-    if (sources.length === 0) {
-        return (
-            <div className="overlay-container">
-                <div style={{ textAlign: 'center', color: '#aaa', padding: '6px', fontSize: '10px' }}>
-                    <span>📺</span> Aucune source OVERLAY
-                </div>
-            </div>
-        );
-    }
 
     return (
-        <div className="overlay-container">
-            <h3>🎭 OVERLAY</h3>
-            <div className="overlay-sources">
-                {sources.map((source) => (
-                    <div key={source.id} className="overlay-source-item">
-                        <span className="source-name">{source.name}</span>
-                        <div className="source-controls">
-                            <span
-                                className={`visibility-indicator ${source.visible ? 'visible' : 'hidden'}`}
-                                aria-live="polite"
-                            >
-                                {source.visible ? 'ON' : 'OFF'}
-                            </span>
-                            <button
-                                className="toggle-btn"
-                                onClick={() => toggleSourceVisibility(source)}
-                                disabled={updatingId === source.id}
-                                title={source.visible ? 'Masquer' : 'Afficher'}
-                            >
-                                {updatingId === source.id ? (
-                                    <span className="spinner"></span>
-                                ) : source.visible ? (
-                                    '❌'
-                                ) : (
-                                    '✅'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                ))}
+        <section className="panel-section overlay-panel" aria-labelledby="overlayTitle">
+            <div className="section-head">
+                <h2 id="overlayTitle" className="section-title">
+                    Overlay
+                </h2>
             </div>
-            <button className="refresh-btn" onClick={loadSources} disabled={isLoading} title="Actualiser">
-                🔄 Actualiser
-            </button>
-        </div>
+            <div className="overlay-container">{content}</div>
+        </section>
     );
 }
